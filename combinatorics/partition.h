@@ -105,7 +105,7 @@ uint64_t Factorial(uint64_t n);
 
 // Computes the factorial of the partition `p`. That is, the product of the
 // factorial of all of the parts in the partition.
-template <typename PartType>
+template <std::integral PartType>
 uint64_t Factorial(BasicPartition<PartType> const &p) {
   assert(p.whole() <= 20 && "Support for partitions of no more than 20");
   uint64_t result = 1;
@@ -115,7 +115,7 @@ uint64_t Factorial(BasicPartition<PartType> const &p) {
 
 // Returns the number of permutations in the symmetric group with cycle-type
 // `p`.
-template <typename PartType>
+template <std::integral PartType>
 uint64_t CycleTypeCount(BasicPartition<PartType> const &p) {
   uint64_t denominator    = 1;
   PartType last_part_size = 0;
@@ -136,7 +136,7 @@ uint64_t CycleTypeCount(BasicPartition<PartType> const &p) {
 
 // Returns the rank of the partition `p`. That is, returns the largest value `n`
 // for which the partition contains `n` parts of size at least `n`.
-template <typename PartType>
+template <std::integral PartType>
 PartType Rank(BasicPartition<PartType> const &p) {
   PartType n = 0;
   for (auto iter = p.begin(); iter != p.end(); ++iter) {

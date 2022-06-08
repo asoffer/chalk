@@ -7,6 +7,7 @@ namespace chalk {
 
 using ::testing::ElementsAre;
 
+
 TEST(Partition, InitializerListConstruction) {
   Partition p{5, 2, 2, 1};
   EXPECT_EQ(p.parts(), 4);
@@ -16,6 +17,12 @@ TEST(Partition, InitializerListConstruction) {
   EXPECT_EQ(p[1], 2);
   EXPECT_EQ(p[2], 2);
   EXPECT_EQ(p[3], 1);
+}
+
+TEST(Partition, OrderIndependent) {
+  Partition p{5, 2, 2, 1};
+  EXPECT_EQ(p, (Partition{5, 1, 2, 2}));
+  EXPECT_EQ(p, (Partition{1, 2, 5, 2}));
 }
 
 TEST(Partition, Trivial) {
