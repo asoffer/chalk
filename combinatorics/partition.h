@@ -1,3 +1,6 @@
+#ifndef CHALK_COMBINATORICS_PARTITION_H
+#define CHALK_COMBINATORICS_PARTITION_H
+
 #include <algorithm>
 #include <cassert>
 #include <concepts>
@@ -144,3 +147,5 @@ PartType Rank(BasicPartition<PartType> const &p) {
 }
 
 }  // namespace chalk
+
+#endif  // CHALK_COMBINATORICS_PARTITION_H
