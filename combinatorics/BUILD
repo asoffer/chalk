@@ -4,7 +4,7 @@ cc_library(
     name = "partition",
     hdrs = ["partition.h"],
     srcs = ["partition.cc"],
-    deps = ["//common:iterator"],
+    deps = ["//base:iterator"],
 )
 
 cc_test(

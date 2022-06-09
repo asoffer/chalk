@@ -1,10 +1,10 @@
-#ifndef CHALK_ITERATOR_ITERATOR_H
-#define CHALK_ITERATOR_ITERATOR_H
+#ifndef CHALK_BASE_ITERATOR_H
+#define CHALK_BASE_ITERATOR_H
 
 #include <type_traits>
 #include <utility>
 
-namespace chalk::common {
+namespace chalk::base {
 
 template <typename B, typename E>
 struct iterator_range {
@@ -26,6 +26,6 @@ struct iterator_range {
 template <typename B, typename E>
 iterator_range(B, E) -> iterator_range<B, E>;
 
-}  // namespace chalk::common
+}  // namespace chalk::base
 
-#endif  // CHALK_ITERATOR_ITERATOR_H
+#endif  // CHALK_BASE_ITERATOR_H

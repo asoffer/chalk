@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-#include "common/iterator.h"
+#include "base/iterator.h"
 
 namespace chalk {
 
@@ -155,7 +155,7 @@ struct BasicPartition {
   // `n` in lexicographic order.
   static auto All(value_type n) {
     assert(n > 0);
-    return common::iterator_range(
+    return base::iterator_range(
         internal_partition::AllPartitionsIterator<value_type>(Full(n)),
         internal_partition::AllPartitionsIterator<value_type>(
             BasicPartition{}));
