@@ -97,5 +97,20 @@ TEST(Partition, CycleTypeCount) {
   EXPECT_EQ(CycleTypeCount(Partition{1, 1, 1, 1, 1}), 1);
 }
 
+
+TEST(Partition, All) {
+  EXPECT_THAT(Partition::All(1), ElementsAre(Partition{1}));
+  EXPECT_THAT(Partition::All(2), ElementsAre(Partition{2}, Partition{1, 1}));
+  EXPECT_THAT(Partition::All(3),
+              ElementsAre(Partition{3}, Partition{2, 1}, Partition{1, 1, 1}));
+  EXPECT_THAT(Partition::All(4),
+              ElementsAre(Partition{4}, Partition{3, 1}, Partition{2, 2},
+                          Partition{2, 1, 1}, Partition{1, 1, 1, 1}));
+  EXPECT_THAT(Partition::All(5),
+              ElementsAre(Partition{5}, Partition{4, 1}, Partition{3, 2},
+                          Partition{3, 1, 1}, Partition{2, 2, 1},
+                          Partition{2, 1, 1, 1}, Partition{1, 1, 1, 1, 1}));
+}
+
 }  // namespace chalk
 

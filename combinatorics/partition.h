@@ -8,7 +8,58 @@
 #include <string>
 #include <string_view>
 
+#include "common/iterator.h"
+
 namespace chalk {
+
+template <std::integral PartType>
+struct BasicPartition;
+
+namespace internal_partition {
+
+template <std::integral PartType>
+struct AllPartitionsIterator {
+  using value_type = BasicPartition<PartType>;
+
+  explicit AllPartitionsIterator(BasicPartition<PartType> p)
+      : p_(std::move(p)) {}
+
+  bool operator==(AllPartitionsIterator const &) const = default;
+  bool operator!=(AllPartitionsIterator const &) const = default;
+
+  value_type const &operator*() const { return p_; }
+  value_type const *operator->() const { return &p_; }
+
+  AllPartitionsIterator &operator++() {
+    auto iter = std::partition_point(p_.parts_.begin(), p_.parts_.end(),
+                                     [](PartType n) { return n != 1; });
+    if (iter == p_.parts_.begin()) {
+      p_ = {};
+      return *this;
+    }
+    // Subtract 1 from the entry immediately before `iter`.
+    --*std::prev(iter);
+    size_t value = *std::prev(iter);
+
+    // Count the number of ones including the one we just extracted.
+    size_t num_ones = std::distance(iter, p_.parts_.end()) + 1;
+    p_.parts_.erase(iter, p_.parts_.end());
+    for (; num_ones > value; num_ones -= value) { p_.parts_.push_back(value); }
+    p_.parts_.push_back(num_ones);
+    return *this;
+  }
+
+  AllPartitionsIterator operator++(int) {
+    auto copy = *this;
+    ++*this;
+    return copy;
+  }
+
+ private:
+  BasicPartition<PartType> p_;
+};
+
+}  // namespace internal_partition
 
 // Represents an integer partition, where each part is stored as a `PartType` in
 // contiguous storage in weakly descending order.
@@ -33,7 +84,6 @@ struct BasicPartition {
     return Rectangle(n, 1);
   }
   static BasicPartition Full(value_type n) { return Rectangle(1, n); }
-
 
   // Returns the number of parts in the partition.
   constexpr size_t parts() { return parts_.size(); }
@@ -83,6 +133,11 @@ struct BasicPartition {
     return not(lhs == rhs);
   }
 
+  template <typename H>
+  friend H AbslHashValue(H h, BasicPartition const &p) {
+    return H::combine(std::move(h), p.parts_);
+  }
+
   friend std::ostream &operator<<(std::ostream &os, BasicPartition const &p) {
     std::string_view separator = "(";
     for (auto part : p.parts_) {
@@ -91,8 +146,19 @@ struct BasicPartition {
     return os << ")";
   }
 
+  // Returns an iterator range that will iterate through all partitions of size
+  // `n` in lexicographic order.
+  static auto All(value_type n) {
+    assert(n > 0);
+    return common::iterator_range(
+        internal_partition::AllPartitionsIterator<value_type>(Full(n)),
+        internal_partition::AllPartitionsIterator<value_type>(
+            BasicPartition{}));
+  }
+
  private:
-  BasicPartition(std::basic_string<value_type> parts)
+  friend struct internal_partition::AllPartitionsIterator<value_type>;
+  explicit BasicPartition(std::basic_string<value_type> parts)
       : parts_(std::move(parts)) {}
 
   std::basic_string<value_type> parts_;
