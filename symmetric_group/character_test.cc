@@ -40,4 +40,12 @@ TEST(SymmetricGroupCharacter, Four) {
   EXPECT_EQ(S::Irreducible({1, 1, 1, 1}), c1111 - c211 + c22 + c31 - c4);
 }
 
+TEST(SymmetricGroupCharacter, InnerProduct) {
+  auto c1111 = S::KroneckerDelta({1, 1, 1, 1});
+  auto c211  = S::KroneckerDelta({2, 1, 1});
+  EXPECT_NEAR(InnerProduct(c1111 - c211, c211), -0.25, 0.0001);
+  EXPECT_NEAR(InnerProduct(c1111 + c211, c211), 0.25, 0.0001);
+  EXPECT_EQ(InnerProduct(c1111, c211), 0);
+}
+
 }  // namespace chalk
