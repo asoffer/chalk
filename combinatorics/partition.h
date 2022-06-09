@@ -86,7 +86,7 @@ struct BasicPartition {
   static BasicPartition Full(value_type n) { return Rectangle(1, n); }
 
   // Returns the number of parts in the partition.
-  constexpr size_t parts() { return parts_.size(); }
+  constexpr size_t parts() const { return parts_.size(); }
 
   // Returns the integer `n` for which `*this` is a partition.
   constexpr size_t whole() const {
@@ -115,9 +115,9 @@ struct BasicPartition {
   auto cbegin() const { return parts_.cbegin(); }
   auto rbegin() const { return parts_.rbegin(); }
   auto crbegin() const { return parts_.crbegin(); }
-  auto end() { return parts_.end(); }
   auto end() const { return parts_.end(); }
   auto cend() const { return parts_.cend(); }
+  auto rend() const { return parts_.rend(); }
   auto crend() const { return parts_.crend(); }
 
   value_type operator[](size_t i) const {
@@ -135,7 +135,7 @@ struct BasicPartition {
 
   template <typename H>
   friend H AbslHashValue(H h, BasicPartition const &p) {
-    return H::combine(std::move(h), p.parts_);
+    return H::combine_contiguous(std::move(h), &*p.parts_.begin(), p.parts());
   }
 
   friend std::ostream &operator<<(std::ostream &os, BasicPartition const &p) {
