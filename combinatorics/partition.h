@@ -74,6 +74,11 @@ struct BasicPartition {
     std::sort(parts_.rbegin(), parts_.rend());
   }
 
+  template <typename Iter>
+  explicit BasicPartition(Iter b, Iter e) : parts_(b, e) {
+    std::sort(parts_.rbegin(), parts_.rend());
+  }
+
   static BasicPartition Trivial() {
     return BasicPartition(std::basic_string<value_type>());
   }

@@ -6,6 +6,7 @@ cc_library(
     srcs = ["character.cc"],
     deps = [
         "//combinatorics:partition",
+        "@com_google_absl//absl/types:span",
         "@com_google_absl//absl/container:flat_hash_map",
     ],
 )

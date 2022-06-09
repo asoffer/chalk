@@ -76,6 +76,18 @@ struct SymmetricGroupCharacter {
     return *this;
   }
 
+  friend int64_t InnerProduct(SymmetricGroupCharacter const &lhs,
+                              SymmetricGroupCharacter const &rhs) {
+    if (lhs.values_.empty()) { return 0; }
+    int64_t result = 0;
+    for (auto const &[partition, coefficient] : lhs.values_) {
+      auto iter = rhs.values_.find(partition);
+      if (iter == rhs.values_.end()) { continue; }
+      result += (iter->second * coefficient * CycleTypeCount(partition));
+    }
+    return result / Factorial(lhs.values_.begin()->first.whole());
+  }
+
   friend std::ostream &operator<<(std::ostream &os,
                                   SymmetricGroupCharacter const &c) {
     for (auto const &[partition, coefficient] : c.values_) {
