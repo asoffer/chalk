@@ -73,45 +73,63 @@ struct BoundaryPartition {
     return height;
   }
 
+  bool operator==(BoundaryPartition const &) const = default;
+  bool operator!=(BoundaryPartition const &) const = default;
+
+  template <typename H>
+  friend H AbslHashValue(H h, BoundaryPartition const &b) {
+    return H::combine(std::move(h), b.shape_);
+  }
+
  private:
   std::bitset<64> shape_;
 };
 
-constexpr uint64_t BitIndex(uint64_t n) {
-  uint64_t result = 0;
-  if (n & 0b1111111111111111111111111111111100000000000000000000000000000000) {
-    result += 32;
-  }
-  if (n & 0b1111111111111111000000000000000011111111111111110000000000000000) {
-    result += 16;
-  }
-  if (n & 0b1111111100000000111111110000000011111111000000001111111100000000) {
-    result += 8;
-  }
-  if (n & 0b1111000011110000111100001111000011110000111100001111000011110000) {
-    result += 4;
-  }
-  if (n & 0b1100110011001100110011001100110011001100110011001100110011001100) {
-    result += 2;
-  }
-  if (n & 0b1010101010101010101010101010101010101010101010101010101010101010) {
-    result += 1;
-  }
-  return result;
-}
-
 constexpr uint64_t RemoveLeastSignificantBit(uint64_t &n) {
   uint64_t one_less = n - uint64_t{1};
-  uint64_t index    = BitIndex(((n ^ one_less) + 1) >> 1);
+  uint64_t index    = std::countr_zero(((n ^ one_less) + 1) >> 1);
   n &= one_less;
   return index;
 }
 
+struct MurnaghanNakayamaCache {
+  using key_type =
+      std::pair<BoundaryPartition, absl::Span<Partition::value_type const>>;
+  using mapped_type = int64_t;
+  using value_type  = std::pair<key_type const, mapped_type>;
+
+  auto find(key_type const &k) { return cache_.find(k); }
+
+  auto try_emplace(key_type const &k) {
+    auto result           = cache_.try_emplace(k);
+    auto [iter, inserted] = result;
+    if (not inserted) { return result; }
+
+    auto handle         = cache_.extract(iter);
+    handle.key().second = spans_.emplace_back(k.second.begin(), k.second.end());
+    iter                = cache_.insert(std::move(handle)).position;
+    return std::make_pair(iter, true);
+  }
+
+ private:
+  absl::flat_hash_map<
+      std::pair<BoundaryPartition, absl::Span<Partition::value_type const>>,
+      int64_t>
+      cache_;
+  std::deque<std::vector<Partition::value_type>> spans_;
+};
+
 // Uses the Murnaghan-Nakayama rule to compute the character value at `q` for an
 // irreducible representation of shape `p`.
 int64_t MurnaghanNakayama(BoundaryPartition const &p,
-                          absl::Span<Partition::value_type const> parts) {
+                          absl::Span<Partition::value_type const> parts,
+                          MurnaghanNakayamaCache &cache) {
   if (parts.empty()) { return 1; }
+  std::pair pair(p, parts);
+  if (auto [iter, inserted] = cache.try_emplace(pair); not inserted) {
+    return iter->second;
+  }
+  absl::Span original = parts;
 
   int64_t result = 0;
 
@@ -123,8 +141,11 @@ int64_t MurnaghanNakayama(BoundaryPartition const &p,
     BoundaryPartition q = p;
     size_t lsb_index    = RemoveLeastSignificantBit(indices);
     size_t height       = q.remove_hook(hook_length, lsb_index);
-    result += (((height % 2) == 0) ? -1 : 1) * MurnaghanNakayama(q, parts);
+    result +=
+        (((height % 2) == 0) ? -1 : 1) * MurnaghanNakayama(q, parts, cache);
   }
+
+  cache.find(pair)->second = result;
   return result;
 }
 
@@ -132,12 +153,31 @@ int64_t MurnaghanNakayama(BoundaryPartition const &p,
 
 SymmetricGroupCharacter SymmetricGroupCharacter::Irreducible(
     Partition const &p) {
+  MurnaghanNakayamaCache cache;
+
   SymmetricGroupCharacter result;
   for (Partition partition : Partition::All(p.whole())) {
     int64_t value = MurnaghanNakayama(
         BoundaryPartition(p),
-        absl::MakeConstSpan(&*partition.begin(), partition.parts()));
+        absl::MakeConstSpan(&*partition.begin(), partition.parts()), cache);
     if (value != 0) { result.values_.try_emplace(std::move(partition), value); }
+  }
+  return result;
+}
+
+std::vector<SymmetricGroupCharacter> SymmetricGroupCharacter::AllIrreducibles(
+    size_t n) {
+  MurnaghanNakayamaCache cache;
+
+  std::vector<SymmetricGroupCharacter> result;
+  for (Partition p : Partition::All(n)) {
+    SymmetricGroupCharacter &c = result.emplace_back();
+    for (Partition partition : Partition::All(p.whole())) {
+      int64_t value = MurnaghanNakayama(
+          BoundaryPartition(p),
+          absl::MakeConstSpan(&*partition.begin(), partition.parts()), cache);
+      if (value != 0) { c.values_.try_emplace(std::move(partition), value); }
+    }
   }
   return result;
 }

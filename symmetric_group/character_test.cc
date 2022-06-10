@@ -5,6 +5,8 @@
 
 namespace chalk {
 
+using ::testing::ElementsAre;
+
 using S = SymmetricGroupCharacter;
 
 TEST(SymmetricGroupCharacter, One) {
@@ -34,9 +36,9 @@ TEST(SymmetricGroupCharacter, Four) {
   auto c31   = S::KroneckerDelta({3, 1});
   auto c4    = S::KroneckerDelta({4});
   EXPECT_EQ(S::Irreducible({4}), c1111 + c211 + c22 + c31 + c4);
-  EXPECT_EQ(S::Irreducible({3,1}), 3 * c1111 + c211 - c22 - c4);
-  EXPECT_EQ(S::Irreducible({2,2}), 2 * c1111 + 2 * c22 - c31);
-  EXPECT_EQ(S::Irreducible({2,1,1}), 3 * c1111 - c211 - c22 + c4);
+  EXPECT_EQ(S::Irreducible({3, 1}), 3 * c1111 + c211 - c22 - c4);
+  EXPECT_EQ(S::Irreducible({2, 2}), 2 * c1111 + 2 * c22 - c31);
+  EXPECT_EQ(S::Irreducible({2, 1, 1}), 3 * c1111 - c211 - c22 + c4);
   EXPECT_EQ(S::Irreducible({1, 1, 1, 1}), c1111 - c211 + c22 + c31 - c4);
 }
 
@@ -46,6 +48,20 @@ TEST(SymmetricGroupCharacter, InnerProduct) {
   EXPECT_NEAR(InnerProduct(c1111 - c211, c211), -0.25, 0.0001);
   EXPECT_NEAR(InnerProduct(c1111 + c211, c211), 0.25, 0.0001);
   EXPECT_EQ(InnerProduct(c1111, c211), 0);
+}
+
+TEST(SymmetricGroupCharacter, AllIrreducibles) {
+  auto c1111 = S::KroneckerDelta({1, 1, 1, 1});
+  auto c211  = S::KroneckerDelta({2, 1, 1});
+  auto c22   = S::KroneckerDelta({2, 2});
+  auto c31   = S::KroneckerDelta({3, 1});
+  auto c4    = S::KroneckerDelta({4});
+  EXPECT_THAT(S::AllIrreducibles(4),
+              ElementsAre(c1111 + c211 + c22 + c31 + c4,  //
+                          3 * c1111 + c211 - c22 - c4,    //
+                          2 * c1111 + 2 * c22 - c31,      //
+                          3 * c1111 - c211 - c22 + c4,    //
+                          c1111 - c211 + c22 + c31 - c4));
 }
 
 }  // namespace chalk

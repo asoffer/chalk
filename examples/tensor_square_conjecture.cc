@@ -28,16 +28,26 @@ chalk::Partition StaircasePartition(size_t n) {
 
 int main(int argc, char const *argv[]) {
   size_t n = ValidateInputs(absl::MakeConstSpan(argv, argc));
+  size_t N = n * (n + 1) / 2;
+
   auto staircase =
       chalk::SymmetricGroupCharacter::Irreducible(StaircasePartition(n));
   auto tensor_square = staircase * staircase;
   std::cerr << tensor_square;
 
-  for (auto p : chalk::Partition::All(n * (n + 1) / 2)) {
-    std::cerr << "Inner product with " << p << ": "
-              << InnerProduct(tensor_square,
-                              chalk::SymmetricGroupCharacter::Irreducible(p))
-              << "\n";
+  std::vector irreducibles = chalk::SymmetricGroupCharacter::AllIrreducibles(N);
+  for (size_t i = 0; i < irreducibles.size(); ++i) {
+    if (InnerProduct(tensor_square, irreducibles[i]) != 0) { continue; }
+
+    auto range = chalk::Partition::All(N);
+    auto iter  = range.begin();
+    for (size_t j = 0; j < i; ++j) { ++iter; }
+    std::cerr << "Tensor square for the staircase shape of size " << n
+              << " does not contain any copies of the irreducible "
+                 "representation for "
+              << *iter << ".\n";
+    return 0;
   }
+  std::cerr << "Conjecture validated for " << n << ".\n";
   return 0;
 }

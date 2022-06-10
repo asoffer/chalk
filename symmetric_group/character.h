@@ -14,6 +14,10 @@ struct SymmetricGroupCharacter {
   // shape `p`.
   static SymmetricGroupCharacter Irreducible(Partition const &p);
 
+  // Returns a container consisting of all irreducible characters for the
+  // symmetric group on `n` elements.
+  static std::vector<SymmetricGroupCharacter> AllIrreducibles(size_t n);
+
   // Constructs the character which evaluates to 1 on `p` and 0 elsewhere.
   static SymmetricGroupCharacter KroneckerDelta(Partition const &p);
 
@@ -99,7 +103,7 @@ struct SymmetricGroupCharacter {
 
  private:
   absl::flat_hash_map<Partition, int64_t> values_;
-  };
+};
 
 }  // namespace chalk
 
