@@ -35,9 +35,9 @@ struct Integer {
   friend bool operator==(std::integral auto lhs, Integer const &rhs) {
     if (rhs.span().size() != 1) { return false; }
     if constexpr (std::signed_integral<decltype(lhs)>) {
-      return ((lhs >= 0) ^ Negative(rhs)) and rhs.span()[0] == std::abs(lhs);
+      return ((lhs >= 0) ^ IsNegative(rhs)) and rhs.span()[0] == std::abs(lhs);
     } else {
-      return not Negative(rhs) and rhs.span()[0] == lhs;
+      return not IsNegative(rhs) and rhs.span()[0] == lhs;
     }
   }
   friend bool operator==(Integer const &lhs, std::integral auto rhs) {
@@ -58,14 +58,14 @@ struct Integer {
 
   friend bool operator<(std::integral auto lhs, Integer const &rhs) {
     if constexpr (std::signed_integral<decltype(lhs)>) {
-      if (Negative(lhs)) {
-        if (Negative(rhs)) {
+      if (IsNegative(lhs)) {
+        if (IsNegative(rhs)) {
           return rhs.span().size() == 1 and -lhs > rhs.span()[0];
         } else {
           return true;
         }
       } else {
-        if (Negative(rhs)) {
+        if (IsNegative(rhs)) {
           return false;
         } else {
           return rhs.span().size() > 1 or lhs < rhs.span()[0];
@@ -78,14 +78,14 @@ struct Integer {
 
   friend bool operator<(Integer const &lhs, std::integral auto rhs) {
     if constexpr (std::signed_integral<decltype(rhs)>) {
-      if (Negative(rhs)) {
-        if (Negative(lhs)) {
+      if (IsNegative(rhs)) {
+        if (IsNegative(lhs)) {
           return lhs.span().size() > 1 or lhs.span()[0] > -rhs;
         } else {
           return false;
         }
       } else {
-        if (Negative(lhs)) {
+        if (IsNegative(lhs)) {
           return true;
         } else {
           return lhs.span().size() == 1 and lhs.span()[0] < rhs;
@@ -219,6 +219,9 @@ struct Integer {
 
   friend std::ostream &operator<<(std::ostream &os, Integer const &n);
 
+  static bool IsNegative(std::signed_integral auto n) { return n < 0; }
+  static bool IsNegative(Integer const &n) { return n.sign() < 0; }
+
  private:
   int sign() const { return data_[0] & 1 ? -1 : 1; }
 
@@ -230,9 +233,6 @@ struct Integer {
     return absl::MakeConstSpan(
         reinterpret_cast<uint64_t *>(data_[0] & ~uintptr_t{1}), data_[1]);
   }
-
-  static bool Negative(std::signed_integral auto n) { return n < 0; }
-  static bool Negative(Integer const &n) { return n.sign() < 0; }
 
   void EnsureCapacity(size_t capacity);
   void ShrinkToFit();

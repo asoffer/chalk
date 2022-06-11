@@ -160,7 +160,7 @@ Integer operator*(Integer const &lhs, Integer const &rhs) {
                          std::distance(lhs.span().begin(), lhs_iter));
   }
 
-  if (Integer::Negative(lhs) != Integer::Negative(rhs)) { result.negate(); }
+  if (Integer::IsNegative(lhs) != Integer::IsNegative(rhs)) { result.negate(); }
   result.ShrinkToFit();
   return result;
 }
@@ -181,7 +181,7 @@ void Integer::MultiplyBy(uint64_t n) {
 }
 
 std::ostream &operator<<(std::ostream &os, Integer const &n) {
-  absl::Format(&os, "%s0x%x", Integer::Negative(n) ? "-" : "",
+  absl::Format(&os, "%s0x%x", Integer::IsNegative(n) ? "-" : "",
                *n.span().rbegin());
   for (auto iter = std::next(n.span().rbegin()); iter != n.span().rend();
        ++iter) {
@@ -241,8 +241,8 @@ bool operator<(Integer const &lhs, Integer const &rhs) {
   auto rhs_iter = rhs.span().end() - 1;
   auto lhs_end  = lhs.span().begin() - 1;
   for (; lhs_iter != lhs_end; --lhs_iter, --rhs_iter) {
-    if (*lhs_iter < *rhs_iter) { return not Integer::Negative(lhs); }
-    if (*lhs_iter > *rhs_iter) { return Integer::Negative(lhs); }
+    if (*lhs_iter < *rhs_iter) { return not Integer::IsNegative(lhs); }
+    if (*lhs_iter > *rhs_iter) { return Integer::IsNegative(lhs); }
   }
   return false;
 }
