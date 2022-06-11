@@ -6,72 +6,184 @@
 #include <cstring>
 #include <ostream>
 
+#include "absl/types/span.h"
+
 namespace chalk {
 
 // A type sufficient for holding arbitrarily large integers (limited only by
 // system memory constraints).
 struct Integer {
-  Integer() : Integer(uint64_t{0}) {}
+  Integer(uint64_t n = 0);
 
-  Integer(uint64_t n)
-      : data_{reinterpret_cast<uintptr_t>(new uint64_t[1]), 1, 1} {
-    *data() = n;
-  }
-
-  template <std::integral T, std::enable_if_t<std::is_signed_v<T>, int> = 0>
-  Integer(T n) : Integer(static_cast<uint64_t>(n < 0 ? -n : n)) {
+  Integer(std::signed_integral auto n)
+      : Integer(static_cast<uint64_t>(std::abs(n))) {
     if (n < 0) { negate(); }
   }
 
-  template <std::integral T, std::enable_if_t<std::is_unsigned_v<T>, int> = 0>
-  Integer(T n) : Integer(n) {}
+  Integer(std::unsigned_integral auto n) : Integer(static_cast<uint64_t>(n)) {}
 
-  Integer(Integer const &n) {
-    uint64_t *ptr = new uint64_t[n.data_[1]];
-    data_[1]      = n.data_[1];
-    data_[2]      = n.data_[1];
-    std::memcpy(ptr, n.data(), size() * sizeof(uint64_t));
-    data_[0] = reinterpret_cast<uintptr_t>(ptr);
-  }
-  Integer(Integer &&n) {
-    std::memcpy(data_, n.data_, sizeof(uintptr_t) * 3);
-    std::memset(n.data_, 0, sizeof(uintptr_t) * 3);
-  }
-  ~Integer() { delete[] data(); }
+  Integer(Integer const &n);
+  Integer(Integer &&n);
 
-  Integer &operator=(Integer const &n) {
-    this->~Integer();
-    new (this) Integer(n);
-    return *this;
-  }
+  Integer &operator=(Integer const &n);
+  Integer &operator=(Integer &&n);
 
-  Integer &operator=(Integer &&n) {
-    std::memcpy(data_, n.data_, sizeof(uintptr_t) * 3);
-    std::memset(n.data_, 0, sizeof(uintptr_t) * 3);
-    return *this;
+  ~Integer();
+
+  // Comparisons
+  friend bool operator==(Integer const &lhs, Integer const &rhs);
+  friend bool operator==(std::integral auto lhs, Integer const &rhs) {
+    if (rhs.span().size() != 1) { return false; }
+    if constexpr (std::signed_integral<decltype(lhs)>) {
+      return ((lhs >= 0) ^ Negative(rhs)) and rhs.span()[0] == std::abs(lhs);
+    } else {
+      return not Negative(rhs) and rhs.span()[0] == lhs;
+    }
+  }
+  friend bool operator==(Integer const &lhs, std::integral auto rhs) {
+    return rhs == lhs;
   }
 
-  // Addition operations
+  friend bool operator!=(std::integral auto lhs, Integer const &rhs) {
+    return not(lhs == rhs);
+  }
+  friend bool operator!=(Integer const &lhs, std::integral auto rhs) {
+    return not(lhs == rhs);
+  }
+  friend bool operator!=(Integer const &lhs, Integer const &rhs) {
+    return not(lhs == rhs);
+  }
+
+  friend bool operator<(Integer const &lhs, Integer const &rhs);
+
+  friend bool operator<(std::integral auto lhs, Integer const &rhs) {
+    if constexpr (std::signed_integral<decltype(lhs)>) {
+      if (Negative(lhs)) {
+        if (Negative(rhs)) {
+          return rhs.span().size() == 1 and -lhs > rhs.span()[0];
+        } else {
+          return true;
+        }
+      } else {
+        if (Negative(rhs)) {
+          return false;
+        } else {
+          return rhs.span().size() > 1 or lhs < rhs.span()[0];
+        }
+      }
+    } else {
+      return rhs.span().size() > 1 or lhs < rhs.span()[0];
+    }
+  }
+
+  friend bool operator<(Integer const &lhs, std::integral auto rhs) {
+    if constexpr (std::signed_integral<decltype(rhs)>) {
+      if (Negative(rhs)) {
+        if (Negative(lhs)) {
+          return lhs.span().size() > 1 or lhs.span()[0] > -rhs;
+        } else {
+          return false;
+        }
+      } else {
+        if (Negative(lhs)) {
+          return true;
+        } else {
+          return lhs.span().size() == 1 and lhs.span()[0] < rhs;
+        }
+      }
+    } else {
+      return lhs.span().size() > 1 or lhs.span()[0] > lhs;
+    }
+  }
+
+  friend bool operator<=(Integer const &lhs, Integer const &rhs) {
+    return not(rhs < lhs);
+  }
+  friend bool operator<=(std::integral auto lhs, Integer const &rhs) {
+    return not(rhs < lhs);
+  }
+  friend bool operator<=(Integer const &lhs, std::integral auto rhs) {
+    return not(rhs < lhs);
+  }
+
+  friend bool operator>(std::integral auto lhs, Integer const &rhs) {
+    return rhs < lhs;
+  }
+  friend bool operator>(Integer const &lhs, std::integral auto rhs) {
+    return rhs < lhs;
+  }
+  friend bool operator>(Integer const &lhs, Integer const &rhs) {
+    return rhs < lhs;
+  }
+
+  friend bool operator>=(Integer const &lhs, Integer const &rhs) {
+    return rhs <= lhs;
+  }
+  friend bool operator>=(std::integral auto lhs, Integer const &rhs) {
+    return rhs <= lhs;
+  }
+  friend bool operator>=(Integer const &lhs, std::integral auto rhs) {
+    return rhs <= lhs;
+  }
+
+  // Addition
   Integer &operator+=(Integer const &rhs);
-
-  Integer &operator+=(std::integral auto rhs) { return AddStartingAt(rhs, 0); }
+  Integer &operator+=(std::integral auto rhs) {
+    using int_t = std::conditional_t<std::signed_integral<decltype(rhs)>,
+                                     int64_t, uint64_t>;
+    return AddStartingAt(static_cast<int_t>(rhs), 0);
+  }
 
   friend Integer operator+(Integer lhs, Integer const &rhs) {
     return lhs += rhs;
   }
 
-  // Subtraction operations
+  friend Integer operator+(Integer const &lhs, Integer &&rhs) {
+    return rhs += lhs;
+  }
+
+  friend Integer operator+(std::integral auto lhs, Integer rhs) {
+    return rhs += lhs;
+  }
+
+  friend Integer operator+(Integer lhs, std::integral auto rhs) {
+    return lhs += rhs;
+  }
+
+  // Subtraction
   Integer &operator-=(Integer const &rhs);
+  Integer &operator-=(std::integral auto rhs) {
+    using int_t = std::conditional_t<std::signed_integral<decltype(rhs)>,
+                                     int64_t, uint64_t>;
+    return SubtractStartingAt(static_cast<int_t>(rhs), 0);
+  }
 
   friend Integer operator-(Integer lhs, Integer const &rhs) {
     return lhs -= rhs;
   }
 
-  Integer operator-() const;
+  friend Integer operator-(Integer const &lhs, Integer &&rhs) {
+    rhs -= lhs;
+    return -std::move(rhs);
+  }
 
+  friend Integer operator-(std::integral auto lhs, Integer rhs) {
+    rhs -= lhs;
+    return -std::move(rhs);
+  }
+
+  friend Integer operator-(Integer lhs, std::integral auto rhs) {
+    lhs -= rhs;
+    return lhs;
+  }
+
+  // Negation
+  Integer operator-() const &;
+  Integer operator-() &;
+  Integer operator-() &&;
   void negate() { data_[0] ^= 1; }
 
-  // Multiplication operations
+  // Multiplication
   friend Integer operator*(Integer const &lhs, Integer const &rhs);
 
   friend Integer operator*(std::integral auto lhs, Integer rhs) {
@@ -105,103 +217,33 @@ struct Integer {
     return *this;
   }
 
-  // Comparisons
-  friend bool operator==(Integer const &lhs, Integer const &rhs) {
-    if (lhs.sign() != rhs.sign()) { return false; }
-    if (lhs.size() != rhs.size()) { return false; }
-    auto lhs_iter = lhs.begin();
-    auto rhs_iter = rhs.begin();
-    auto lhs_end  = lhs.end();
-    for (; lhs_iter != lhs_end; ++lhs_iter, ++rhs_iter) {
-      if (*lhs_iter != *rhs_iter) { return false; }
-    }
-    return true;
-  }
-  friend bool operator==(std::integral auto lhs, Integer const &rhs) {
-    // TODO: Improve implementation.
-    return Integer(lhs) == rhs;
-  }
-  friend bool operator==(Integer const &lhs, std::integral auto rhs) {
-    // TODO: Improve implementation.
-    return lhs == Integer(rhs);
-  }
-  friend bool operator!=(std::integral auto lhs, Integer const &rhs) {
-    return not(lhs == rhs);
-  }
-  friend bool operator!=(Integer const &lhs, std::integral auto rhs) {
-    return not(lhs == rhs);
-  }
-  friend bool operator!=(Integer const &lhs, Integer const &rhs) {
-    return not(lhs == rhs);
-  }
-  friend bool operator<(Integer const &lhs, Integer const &rhs) {
-    if (lhs.sign() < rhs.sign()) { return true; }
-    if (lhs.sign() > rhs.sign()) { return false; }
-    if (lhs.size() < rhs.size()) { return true; }
-    if (lhs.size() > rhs.size()) { return false; }
-    auto lhs_iter = lhs.end() - 1;
-    auto rhs_iter = rhs.end() - 1;
-    auto lhs_end  = lhs.begin() - 1;
-    for (; lhs_iter != lhs_end; --lhs_iter, --rhs_iter) {
-      if (*lhs_iter < *rhs_iter) { return lhs.positive(); }
-      if (*lhs_iter > *rhs_iter) { return lhs.negative(); }
-    }
-    return false;
-  }
-
-  friend bool operator<=(Integer const &lhs, Integer const &rhs) {
-    return not(rhs < lhs);
-  }
-  friend bool operator>(Integer const &lhs, Integer const &rhs) {
-    return rhs < lhs;
-  }
-  friend bool operator>=(Integer const &lhs, Integer const &rhs) {
-    return not(rhs < lhs);
-  }
-
-  template <typename H>
-  friend H AbslHashValue(H h, Integer const &n);
-
   friend std::ostream &operator<<(std::ostream &os, Integer const &n);
 
  private:
-  void MultiplyBy(uint64_t n);
-  int sign() const { return data_[0] & 1 ? 1 : -1; }
-  bool positive() const { return sign() > 0; }
-  bool negative() const { return sign() < 0; }
+  int sign() const { return data_[0] & 1 ? -1 : 1; }
 
-  uint64_t *data() {
-    return reinterpret_cast<uint64_t *>(data_[0] & ~uintptr_t{1});
+  absl::Span<uint64_t> span() {
+    return absl::MakeSpan(
+        reinterpret_cast<uint64_t *>(data_[0] & ~uintptr_t{1}), data_[1]);
   }
-  uint64_t const *data() const {
-    return reinterpret_cast<uint64_t *>(data_[0] & ~uintptr_t{1});
+  absl::Span<uint64_t const> span() const {
+    return absl::MakeConstSpan(
+        reinterpret_cast<uint64_t *>(data_[0] & ~uintptr_t{1}), data_[1]);
   }
-  uint64_t *begin() { return data(); }
-  uint64_t const *begin() const { return data(); };
-  uint64_t *end() { return begin() + size(); }
-  uint64_t const *end() const { return begin() + size(); }
 
-  uint64_t &back() { return *(end() - 1); }
+  static bool Negative(std::signed_integral auto n) { return n < 0; }
+  static bool Negative(Integer const &n) { return n.sign() < 0; }
 
-  size_t size() const { return data_[1]; }
-
-  void EnsureCapacity(size_t capacity) {
-    if (data_[2] >= capacity) { return; }
-    data_[2]      = std::max(2 * data_[2], capacity);
-    uint64_t *ptr = new uint64_t[data_[2]];
-    std::memcpy(ptr, data(), size() * sizeof(uint64_t));
-    delete data();
-    data_[0] = reinterpret_cast<uintptr_t>(ptr);
-  }
+  void EnsureCapacity(size_t capacity);
   void ShrinkToFit();
-  void IncrementSize() {
-    EnsureCapacity(size() + 1);
-    *(data() + data_[1]) = 0;
-    ++data_[1];
-  }
+  void IncrementSize();
 
+  void MultiplyBy(uint64_t n);
   Integer &AddStartingAt(Integer const &, uintptr_t);
   Integer &AddStartingAt(uint64_t, uintptr_t);
+  Integer &AddStartingAt(int64_t, uintptr_t);
+  Integer &SubtractStartingAt(uint64_t, uintptr_t);
+  Integer &SubtractStartingAt(int64_t, uintptr_t);
 
   int sign_;
   uintptr_t data_[3];

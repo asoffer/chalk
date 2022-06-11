@@ -7,6 +7,7 @@ cc_library(
     deps = [
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

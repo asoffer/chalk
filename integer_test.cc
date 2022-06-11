@@ -18,14 +18,37 @@ std::string ToString(Integer const& n) {
   return ss.str();
 }
 
+TEST(Integer, DefaultConstructionIsZero) {
+  Integer default_constructed;
+  EXPECT_TRUE(default_constructed == 0);
+  EXPECT_FALSE(default_constructed != 0);
+  EXPECT_TRUE(default_constructed == Integer(0));
+  EXPECT_FALSE(default_constructed != Integer(0));
+}
+
 TEST(Integer, Construction) {
-  Integer zero;
+  Integer zero = 0;
   EXPECT_TRUE(zero == 0);
   EXPECT_FALSE(zero != 0);
   EXPECT_FALSE(zero == 1);
   EXPECT_TRUE(zero != 1);
   EXPECT_FALSE(zero == -1);
   EXPECT_TRUE(zero != -1);
+  EXPECT_TRUE(zero == uint64_t{0});
+  EXPECT_FALSE(zero != uint64_t{0});
+  EXPECT_FALSE(zero == uint64_t{1});
+  EXPECT_TRUE(zero != uint64_t{1});
+
+  EXPECT_TRUE(0 == zero);
+  EXPECT_FALSE(0 != zero);
+  EXPECT_FALSE(1 == zero);
+  EXPECT_TRUE(1 != zero);
+  EXPECT_FALSE(-1 == zero);
+  EXPECT_TRUE(-1 != zero);
+  EXPECT_TRUE(uint64_t{0} == zero);
+  EXPECT_FALSE(uint64_t{0} != zero);
+  EXPECT_FALSE(uint64_t{1} == zero);
+  EXPECT_TRUE(uint64_t{1} != zero);
 
   Integer one = 1;
   EXPECT_TRUE(one == 1);
@@ -34,6 +57,21 @@ TEST(Integer, Construction) {
   EXPECT_TRUE(one != 0);
   EXPECT_FALSE(one == -1);
   EXPECT_TRUE(one != -1);
+  EXPECT_TRUE(one == uint64_t{1});
+  EXPECT_FALSE(one != uint64_t{1});
+  EXPECT_FALSE(one == uint64_t{0});
+  EXPECT_TRUE(one != uint64_t{0});
+
+  EXPECT_TRUE(1 == one);
+  EXPECT_FALSE(1 != one);
+  EXPECT_FALSE(0 == one);
+  EXPECT_TRUE(0 != one);
+  EXPECT_FALSE(-1 == one);
+  EXPECT_TRUE(-1 != one);
+  EXPECT_TRUE(uint64_t{1} == one);
+  EXPECT_FALSE(uint64_t{1} != one);
+  EXPECT_FALSE(uint64_t{0} == one);
+  EXPECT_TRUE(uint64_t{0} != one);
 
   Integer minus_one = -1;
   EXPECT_TRUE(minus_one == -1);
@@ -42,6 +80,213 @@ TEST(Integer, Construction) {
   EXPECT_TRUE(minus_one != 0);
   EXPECT_FALSE(minus_one == 1);
   EXPECT_TRUE(minus_one != 1);
+  EXPECT_FALSE(minus_one == uint64_t{0});
+  EXPECT_TRUE(minus_one != uint64_t{0});
+  EXPECT_FALSE(minus_one == uint64_t{1});
+  EXPECT_TRUE(minus_one != uint64_t{1});
+
+  EXPECT_TRUE(-1 == minus_one);
+  EXPECT_FALSE(-1 != minus_one);
+  EXPECT_FALSE(0 == minus_one);
+  EXPECT_TRUE(0 != minus_one);
+  EXPECT_FALSE(1 == minus_one);
+  EXPECT_TRUE(1 != minus_one);
+  EXPECT_FALSE(uint64_t{0} == minus_one);
+  EXPECT_TRUE(uint64_t{0} != minus_one);
+  EXPECT_FALSE(uint64_t{1} == minus_one);
+  EXPECT_TRUE(uint64_t{1} != minus_one);
+
+  Integer int64_min = std::numeric_limits<int64_t>::min();
+  EXPECT_FALSE(int64_min == -1);
+  EXPECT_TRUE(int64_min != -1);
+  EXPECT_FALSE(int64_min == 0);
+  EXPECT_TRUE(int64_min != 0);
+  EXPECT_FALSE(int64_min == 1);
+  EXPECT_TRUE(int64_min != 1);
+  EXPECT_FALSE(int64_min == uint64_t{0});
+  EXPECT_TRUE(int64_min != uint64_t{0});
+  EXPECT_FALSE(int64_min == uint64_t{1});
+  EXPECT_TRUE(int64_min != uint64_t{1});
+
+  EXPECT_FALSE(-1 == int64_min);
+  EXPECT_TRUE(-1 != int64_min);
+  EXPECT_FALSE(0 == int64_min);
+  EXPECT_TRUE(0 != int64_min);
+  EXPECT_FALSE(1 == int64_min);
+  EXPECT_TRUE(1 != int64_min);
+  EXPECT_FALSE(uint64_t{0} == int64_min);
+  EXPECT_TRUE(uint64_t{0} != int64_min);
+  EXPECT_FALSE(uint64_t{1} == int64_min);
+  EXPECT_TRUE(uint64_t{1} != int64_min);
+}
+
+TEST(Integer, Comparison) {
+  Integer minus_one = -1;
+  Integer zero      = 0;
+  Integer one       = 1;
+
+  EXPECT_TRUE(zero <= 0);
+  EXPECT_TRUE(zero >= 0);
+  EXPECT_FALSE(zero < 0);
+  EXPECT_FALSE(zero > 0);
+  EXPECT_TRUE(zero <= 1);
+  EXPECT_FALSE(zero >= 1);
+  EXPECT_TRUE(zero < 1);
+  EXPECT_FALSE(zero > 1);
+  EXPECT_FALSE(zero <= -1);
+  EXPECT_TRUE(zero >= -1);
+  EXPECT_FALSE(zero < -1);
+  EXPECT_TRUE(zero > -1);
+
+  EXPECT_TRUE(0 >= zero);
+  EXPECT_TRUE(0 <= zero);
+  EXPECT_FALSE(0 > zero);
+  EXPECT_FALSE(0 < zero);
+  EXPECT_TRUE(1 >= zero);
+  EXPECT_FALSE(1 <= zero);
+  EXPECT_TRUE(1 > zero);
+  EXPECT_FALSE(1 < zero);
+  EXPECT_FALSE(-1 >= zero);
+  EXPECT_TRUE(-1 <= zero);
+  EXPECT_FALSE(-1 > zero);
+  EXPECT_TRUE(-1 < zero);
+
+  EXPECT_TRUE(zero <= zero);
+  EXPECT_TRUE(zero >= zero);
+  EXPECT_FALSE(zero < zero);
+  EXPECT_FALSE(zero > zero);
+  EXPECT_TRUE(zero <= one);
+  EXPECT_FALSE(zero >= one);
+  EXPECT_TRUE(zero < one);
+  EXPECT_FALSE(zero > one);
+  EXPECT_FALSE(zero <= minus_one);
+  EXPECT_TRUE(zero >= minus_one);
+  EXPECT_FALSE(zero < minus_one);
+  EXPECT_TRUE(zero > minus_one);
+
+  int64_t int64_min = std::numeric_limits<int64_t>::min();
+  Integer n         = int64_min;
+  EXPECT_TRUE(n == int64_min);
+  EXPECT_FALSE(n != int64_min);
+  EXPECT_FALSE(n < int64_min);
+  EXPECT_TRUE(n <= int64_min);
+  EXPECT_FALSE(n > int64_min);
+  EXPECT_TRUE(n >= int64_min);
+
+  EXPECT_FALSE(minus_one == int64_min);
+  EXPECT_TRUE(minus_one != int64_min);
+  EXPECT_FALSE(minus_one < int64_min);
+  EXPECT_FALSE(minus_one <= int64_min);
+  EXPECT_TRUE(minus_one > int64_min);
+  EXPECT_TRUE(minus_one >= int64_min);
+
+  Integer very_negative = Integer(std::numeric_limits<int64_t>::min()) *
+                          Integer(std::numeric_limits<uint64_t>::max()) *
+                          Integer(std::numeric_limits<uint64_t>::max());
+
+  EXPECT_TRUE(very_negative < 1);
+  EXPECT_TRUE(very_negative < 0);
+  EXPECT_TRUE(very_negative < -1);
+  EXPECT_TRUE(very_negative < one);
+  EXPECT_TRUE(very_negative < zero);
+  EXPECT_TRUE(very_negative < minus_one);
+  EXPECT_TRUE(very_negative <= 1);
+  EXPECT_TRUE(very_negative <= 0);
+  EXPECT_TRUE(very_negative <= -1);
+  EXPECT_TRUE(very_negative <= one);
+  EXPECT_TRUE(very_negative <= zero);
+  EXPECT_TRUE(very_negative <= minus_one);
+  EXPECT_TRUE(1 > very_negative);
+  EXPECT_TRUE(0 > very_negative);
+  EXPECT_TRUE(-1 > very_negative);
+  EXPECT_TRUE(one > very_negative);
+  EXPECT_TRUE(zero > very_negative);
+  EXPECT_TRUE(minus_one > very_negative);
+  EXPECT_TRUE(1 >= very_negative);
+  EXPECT_TRUE(0 >= very_negative);
+  EXPECT_TRUE(-1 >= very_negative);
+  EXPECT_TRUE(one >= very_negative);
+  EXPECT_TRUE(zero >= very_negative);
+  EXPECT_TRUE(minus_one >= very_negative);
+
+  EXPECT_FALSE(very_negative > 1);
+  EXPECT_FALSE(very_negative > 0);
+  EXPECT_FALSE(very_negative > -1);
+  EXPECT_FALSE(very_negative > one);
+  EXPECT_FALSE(very_negative > zero);
+  EXPECT_FALSE(very_negative > minus_one);
+  EXPECT_FALSE(very_negative >= 1);
+  EXPECT_FALSE(very_negative >= 0);
+  EXPECT_FALSE(very_negative >= -1);
+  EXPECT_FALSE(very_negative >= one);
+  EXPECT_FALSE(very_negative >= zero);
+  EXPECT_FALSE(very_negative >= minus_one);
+  EXPECT_FALSE(1 < very_negative);
+  EXPECT_FALSE(0 < very_negative);
+  EXPECT_FALSE(-1 < very_negative);
+  EXPECT_FALSE(one < very_negative);
+  EXPECT_FALSE(zero < very_negative);
+  EXPECT_FALSE(minus_one < very_negative);
+  EXPECT_FALSE(1 <= very_negative);
+  EXPECT_FALSE(0 <= very_negative);
+  EXPECT_FALSE(-1 <= very_negative);
+  EXPECT_FALSE(one <= very_negative);
+  EXPECT_FALSE(zero <= very_negative);
+  EXPECT_FALSE(minus_one <= very_negative);
+
+  Integer very_positive = Integer(std::numeric_limits<int64_t>::max()) *
+                          Integer(std::numeric_limits<uint64_t>::max()) *
+                          Integer(std::numeric_limits<uint64_t>::max());
+
+  EXPECT_FALSE(very_positive < 1);
+  EXPECT_FALSE(very_positive < 0);
+  EXPECT_FALSE(very_positive < -1);
+  EXPECT_FALSE(very_positive < one);
+  EXPECT_FALSE(very_positive < zero);
+  EXPECT_FALSE(very_positive < minus_one);
+  EXPECT_FALSE(very_positive <= 1);
+  EXPECT_FALSE(very_positive <= 0);
+  EXPECT_FALSE(very_positive <= -1);
+  EXPECT_FALSE(very_positive <= one);
+  EXPECT_FALSE(very_positive <= zero);
+  EXPECT_FALSE(very_positive <= minus_one);
+  EXPECT_FALSE(1 > very_positive);
+  EXPECT_FALSE(0 > very_positive);
+  EXPECT_FALSE(-1 > very_positive);
+  EXPECT_FALSE(one > very_positive);
+  EXPECT_FALSE(zero > very_positive);
+  EXPECT_FALSE(minus_one > very_positive);
+  EXPECT_FALSE(1 >= very_positive);
+  EXPECT_FALSE(0 >= very_positive);
+  EXPECT_FALSE(-1 >= very_positive);
+  EXPECT_FALSE(one >= very_positive);
+  EXPECT_FALSE(zero >= very_positive);
+  EXPECT_FALSE(minus_one >= very_positive);
+
+  EXPECT_TRUE(very_positive > 1);
+  EXPECT_TRUE(very_positive > 0);
+  EXPECT_TRUE(very_positive > -1);
+  EXPECT_TRUE(very_positive > one);
+  EXPECT_TRUE(very_positive > zero);
+  EXPECT_TRUE(very_positive > minus_one);
+  EXPECT_TRUE(very_positive >= 1);
+  EXPECT_TRUE(very_positive >= 0);
+  EXPECT_TRUE(very_positive >= -1);
+  EXPECT_TRUE(very_positive >= one);
+  EXPECT_TRUE(very_positive >= zero);
+  EXPECT_TRUE(very_positive >= minus_one);
+  EXPECT_TRUE(1 < very_positive);
+  EXPECT_TRUE(0 < very_positive);
+  EXPECT_TRUE(-1 < very_positive);
+  EXPECT_TRUE(one < very_positive);
+  EXPECT_TRUE(zero < very_positive);
+  EXPECT_TRUE(minus_one < very_positive);
+  EXPECT_TRUE(1 <= very_positive);
+  EXPECT_TRUE(0 <= very_positive);
+  EXPECT_TRUE(-1 <= very_positive);
+  EXPECT_TRUE(one <= very_positive);
+  EXPECT_TRUE(zero <= very_positive);
+  EXPECT_TRUE(minus_one <= very_positive);
 }
 
 TEST(Integer, Overflow) {
@@ -162,11 +407,10 @@ TEST(Integer, Factorial) {
             "000000000");
 }
 
-
-TEST(Integer, Multiplication) {
-  EXPECT_EQ(Integer(2) * Integer(5), 10);
-  EXPECT_EQ(Integer(2) * Integer(5), Integer(10));
-}
+// TEST(Integer, Multiplication) {
+//   EXPECT_EQ(Integer(2) * Integer(5), 10);
+//   EXPECT_EQ(Integer(2) * Integer(5), Integer(10));
+// }
 
 }  // namespace
 }  // namespace chalk
