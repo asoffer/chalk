@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "base/iterator.h"
+#include "integer.h"
 
 namespace chalk {
 
@@ -172,14 +173,13 @@ struct BasicPartition {
 using Partition = BasicPartition<uint8_t>;
 
 // Computes the product of all positive integers less than or equal to `n`.
-uint64_t Factorial(uint64_t n);
+Integer Factorial(uint64_t n);
 
 // Computes the factorial of the partition `p`. That is, the product of the
 // factorial of all of the parts in the partition.
 template <std::integral PartType>
-uint64_t Factorial(BasicPartition<PartType> const &p) {
-  assert(p.whole() <= 20 && "Support for partitions of no more than 20");
-  uint64_t result = 1;
+Integer Factorial(BasicPartition<PartType> const &p) {
+  Integer result = 1;
   for (uint64_t n : p) { result *= Factorial(n); }
   return result;
 }
@@ -187,8 +187,8 @@ uint64_t Factorial(BasicPartition<PartType> const &p) {
 // Returns the number of permutations in the symmetric group with cycle-type
 // `p`.
 template <std::integral PartType>
-uint64_t CycleTypeCount(BasicPartition<PartType> const &p) {
-  uint64_t denominator    = 1;
+Integer CycleTypeCount(BasicPartition<PartType> const &p) {
+  Integer denominator     = 1;
   PartType last_part_size = 0;
   auto const next_largest = [&](PartType n) { return n != last_part_size; };
   auto iter               = p.cbegin();
@@ -199,7 +199,7 @@ uint64_t CycleTypeCount(BasicPartition<PartType> const &p) {
     last_part_size = *iter;
   }
 
-  uint64_t numerator = Factorial(p.whole());
+  Integer numerator = Factorial(p.whole());
   for (uint64_t n : p) { numerator /= n; }
 
   return numerator / denominator;

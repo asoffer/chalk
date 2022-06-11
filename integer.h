@@ -193,8 +193,10 @@ struct Integer {
     delete data();
     data_[0] = reinterpret_cast<uintptr_t>(ptr);
   }
+  void ShrinkToFit();
   void IncrementSize() {
     EnsureCapacity(size() + 1);
+    *(data() + data_[1]) = 0;
     ++data_[1];
   }
 

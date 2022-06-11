@@ -162,5 +162,11 @@ TEST(Integer, Factorial) {
             "000000000");
 }
 
+
+TEST(Integer, Multiplication) {
+  EXPECT_EQ(Integer(2) * Integer(5), 10);
+  EXPECT_EQ(Integer(2) * Integer(5), Integer(10));
+}
+
 }  // namespace
 }  // namespace chalk

@@ -41,6 +41,7 @@ Integer &Integer::AddStartingAt(uint64_t n, uintptr_t offset) {
       break;
     }
   }
+  ShrinkToFit();
   return *this;
 }
 
@@ -58,6 +59,7 @@ Integer &Integer::AddStartingAt(Integer const &rhs, uintptr_t offset) {
   }
   if (lhs_iter == end()) { IncrementSize(); }
   if (carry) { ++*lhs_iter; }
+  ShrinkToFit();
   return *this;
 }
 
@@ -74,8 +76,10 @@ Integer operator*(Integer const &lhs, Integer const &rhs) {
     result.AddStartingAt(*lhs_iter * rhs, std::distance(lhs.begin(), lhs_iter));
   }
 
+  result.ShrinkToFit();
   return result;
 }
+
 void Integer::MultiplyBy(uint64_t n) {
   EnsureCapacity(size() + 1);
   uint64_t carry = 0;
@@ -88,6 +92,7 @@ void Integer::MultiplyBy(uint64_t n) {
     IncrementSize();
     back() = carry;
   }
+  ShrinkToFit();
 }
 
 std::ostream &operator<<(std::ostream &os, Integer const &n) {
@@ -96,6 +101,21 @@ std::ostream &operator<<(std::ostream &os, Integer const &n) {
     absl::Format(&os, "%016x", *iter);
   }
   return os;
+}
+
+void Integer::ShrinkToFit() {
+  if (size() == 1) { return; }
+  if (*(end() - 1) == 0) {
+    --data_[1];
+    ShrinkToFit();
+  }
+}
+
+Integer operator/(Integer const &lhs, Integer const &rhs) {
+  // TODO: Fully implement this.
+  assert(lhs.size() == 1);
+  assert(rhs.size() == 1);
+  return lhs.data()[0] / rhs.data()[0];
 }
 
 }  // namespace chalk
