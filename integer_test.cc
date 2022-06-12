@@ -120,6 +120,15 @@ TEST(Integer, Construction) {
   EXPECT_TRUE(uint64_t{1} != int64_min);
 }
 
+TEST(Integer, CopyMoveConstruction) {
+  Integer one = 1;
+  Integer minus_one = -1;
+  EXPECT_EQ(one, Integer(one));
+  EXPECT_EQ(minus_one, Integer(minus_one));
+  EXPECT_EQ(1, Integer(std::move(one)));
+  EXPECT_EQ(-1, Integer(std::move(minus_one)));
+}
+
 TEST(Integer, Comparison) {
   Integer minus_one = -1;
   Integer zero      = 0;
@@ -289,6 +298,77 @@ TEST(Integer, Comparison) {
   EXPECT_TRUE(minus_one <= very_positive);
 }
 
+TEST(Integer, AdditionSubtraction) {
+  Integer one  = 1;
+  Integer zero = 0;
+  Integer minus_one = -1;
+  Integer x    = (uint64_t{1} << 63);
+  Integer y    = -x;
+
+  EXPECT_EQ(ToString(x + 1), "0x8000000000000001");
+  EXPECT_EQ(ToString(1 + x), "0x8000000000000001");
+  EXPECT_EQ(ToString(x + one), "0x8000000000000001");
+  EXPECT_EQ(ToString(one + x), "0x8000000000000001");
+
+  EXPECT_EQ(ToString(x + 0), "0x8000000000000000");
+  EXPECT_EQ(ToString(0 + x), "0x8000000000000000");
+  EXPECT_EQ(ToString(x + zero), "0x8000000000000000");
+  EXPECT_EQ(ToString(zero + x), "0x8000000000000000");
+
+  EXPECT_EQ(ToString(x + -1), "0x7fffffffffffffff");
+  EXPECT_EQ(ToString(-1 + x), "0x7fffffffffffffff");
+  EXPECT_EQ(ToString(x + minus_one), "0x7fffffffffffffff");
+  EXPECT_EQ(ToString(minus_one + x), "0x7fffffffffffffff");
+
+  EXPECT_EQ(ToString(x + x + 1), "0x10000000000000001");
+  EXPECT_EQ(ToString(1 + x + x), "0x10000000000000001");
+  EXPECT_EQ(ToString(x + x + one), "0x10000000000000001");
+  EXPECT_EQ(ToString(one + x + x), "0x10000000000000001");
+
+  EXPECT_EQ(ToString(x + x + 0), "0x10000000000000000");
+  EXPECT_EQ(ToString(0 + x + x), "0x10000000000000000");
+  EXPECT_EQ(ToString(x + x + zero), "0x10000000000000000");
+  EXPECT_EQ(ToString(zero + x + x), "0x10000000000000000");
+
+  EXPECT_EQ(ToString(x + x + -1), "0xffffffffffffffff");
+  EXPECT_EQ(ToString(-1 + x + x), "0xffffffffffffffff");
+  EXPECT_EQ(ToString(x + x + minus_one), "0xffffffffffffffff");
+  EXPECT_EQ(ToString(minus_one + x + x), "0xffffffffffffffff");
+
+  EXPECT_EQ(ToString(y + -1), "-0x8000000000000001");
+  EXPECT_EQ(ToString(-1 + y), "-0x8000000000000001");
+  EXPECT_EQ(ToString(y + minus_one), "-0x8000000000000001");
+  EXPECT_EQ(ToString(minus_one + y), "-0x8000000000000001");
+
+  EXPECT_EQ(ToString(y + 0), "-0x8000000000000000");
+  EXPECT_EQ(ToString(0 + y), "-0x8000000000000000");
+  EXPECT_EQ(ToString(y + zero), "-0x8000000000000000");
+  EXPECT_EQ(ToString(zero + y), "-0x8000000000000000");
+
+  EXPECT_EQ(ToString(y + 1), "-0x7fffffffffffffff");
+  EXPECT_EQ(ToString(1 + y), "-0x7fffffffffffffff");
+  EXPECT_EQ(ToString(y + one), "-0x7fffffffffffffff");
+  EXPECT_EQ(ToString(one + y), "-0x7fffffffffffffff");
+
+  EXPECT_EQ(ToString(y + y + -1), "-0x10000000000000001");
+  EXPECT_EQ(ToString(-1 + y + y), "-0x10000000000000001");
+  EXPECT_EQ(ToString(y + y + minus_one), "-0x10000000000000001");
+  EXPECT_EQ(ToString(minus_one + y + y), "-0x10000000000000001");
+
+  EXPECT_EQ(ToString(y + y + 0), "-0x10000000000000000");
+  EXPECT_EQ(ToString(0 + y + y), "-0x10000000000000000");
+  EXPECT_EQ(ToString(y + y + zero), "-0x10000000000000000");
+  EXPECT_EQ(ToString(zero + y + y), "-0x10000000000000000");
+
+  EXPECT_EQ(ToString(y + y + 1), "-0xffffffffffffffff");
+  EXPECT_EQ(ToString(1 + y + y), "-0xffffffffffffffff");
+  EXPECT_EQ(ToString(y + y + one), "-0xffffffffffffffff");
+  EXPECT_EQ(ToString(one + y + y), "-0xffffffffffffffff");
+
+  EXPECT_EQ(x + y, 0);
+  EXPECT_EQ(y + x, 0);
+}
+
 TEST(Integer, Overflow) {
   Integer n = (uint64_t{1} << 63);
   n *= 8;
@@ -407,10 +487,10 @@ TEST(Integer, Factorial) {
             "000000000");
 }
 
-// TEST(Integer, Multiplication) {
-//   EXPECT_EQ(Integer(2) * Integer(5), 10);
-//   EXPECT_EQ(Integer(2) * Integer(5), Integer(10));
-// }
+TEST(Integer, Multiplication) {
+  EXPECT_EQ(Integer(2) * Integer(5), 10);
+  EXPECT_EQ(Integer(2) * Integer(5), Integer(10));
+}
 
 }  // namespace
 }  // namespace chalk

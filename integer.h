@@ -129,9 +129,8 @@ struct Integer {
   // Addition
   Integer &operator+=(Integer const &rhs);
   Integer &operator+=(std::integral auto rhs) {
-    using int_t = std::conditional_t<std::signed_integral<decltype(rhs)>,
-                                     int64_t, uint64_t>;
-    return AddStartingAt(static_cast<int_t>(rhs), 0);
+    // TODO: Improve this implementation.
+    return *this += Integer(rhs);
   }
 
   friend Integer operator+(Integer lhs, Integer const &rhs) {
@@ -153,9 +152,8 @@ struct Integer {
   // Subtraction
   Integer &operator-=(Integer const &rhs);
   Integer &operator-=(std::integral auto rhs) {
-    using int_t = std::conditional_t<std::signed_integral<decltype(rhs)>,
-                                     int64_t, uint64_t>;
-    return SubtractStartingAt(static_cast<int_t>(rhs), 0);
+    // TODO: Improve this implementation.
+    return *this -= Integer(rhs);
   }
 
   friend Integer operator-(Integer lhs, Integer const &rhs) {
@@ -164,11 +162,13 @@ struct Integer {
 
   friend Integer operator-(Integer const &lhs, Integer &&rhs) {
     rhs -= lhs;
+    rhs.negate();
     return -std::move(rhs);
   }
 
   friend Integer operator-(std::integral auto lhs, Integer rhs) {
     rhs -= lhs;
+    rhs.negate();
     return -std::move(rhs);
   }
 
@@ -237,15 +237,19 @@ struct Integer {
   void EnsureCapacity(size_t capacity);
   void ShrinkToFit();
   void IncrementSize();
+  bool IsZero() const;
+
+  // SignSafe* applies the given operation, ignoring signs, and assuming
+  // sign-change does not occur due to the operation.
+  Integer &SignSafeAddition(Integer const &, uintptr_t);
+  Integer &SignSafeAddition(int64_t, uintptr_t);
+  Integer &SignSafeSubtraction(Integer const &, uintptr_t);
+  Integer &SignSafeSubtraction(int64_t, uintptr_t);
 
   void MultiplyBy(uint64_t n);
-  Integer &AddStartingAt(Integer const &, uintptr_t);
-  Integer &AddStartingAt(uint64_t, uintptr_t);
-  Integer &AddStartingAt(int64_t, uintptr_t);
-  Integer &SubtractStartingAt(uint64_t, uintptr_t);
-  Integer &SubtractStartingAt(int64_t, uintptr_t);
 
-  int sign_;
+  static bool MagnitudeLess(Integer const &lhs, Integer const &rhs);
+
   uintptr_t data_[3];
 };
 

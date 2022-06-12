@@ -8,11 +8,12 @@
 namespace chalk {
 namespace {
 
-std::pair<uint64_t, uint64_t> Subtract(uint64_t l, uint64_t r) {
+[[maybe_unused]] std::pair<uint64_t, uint64_t> Subtract(uint64_t l,
+                                                        uint64_t r) {
   return std::make_pair(l - r, r > l ? 1 : 0);
 }
 
-std::pair<uint64_t, uint64_t> Add(uint64_t l, uint64_t r) {
+[[maybe_unused]] std::pair<uint64_t, uint64_t> Add(uint64_t l, uint64_t r) {
   return std::make_pair(l + r, l + r < l ? 1 : 0);
 }
 
@@ -35,7 +36,7 @@ Integer::Integer(Integer const &n) {
   data_[1]      = n.data_[1];
   data_[2]      = n.data_[1];
   std::memcpy(ptr, n.span().data(), span().size() * sizeof(uint64_t));
-  data_[0] = reinterpret_cast<uintptr_t>(ptr);
+  data_[0] = reinterpret_cast<uintptr_t>(ptr) | (n.data_[0] & 1);
 }
 
 Integer::Integer(Integer &&n) {
@@ -73,61 +74,7 @@ Integer Integer::operator-() && {
   return std::move(*this);
 }
 
-Integer &Integer::AddStartingAt(uint64_t n, uintptr_t offset) {
-  EnsureCapacity(std::max(span().size(), offset + 1) + 1);
-  auto lhs_iter = std::next(span().begin(), offset);
-
-  uint64_t carry = n;
-  while (carry != 0) {
-    uint64_t previous_carry    = carry;
-    std::tie(*lhs_iter, carry) = Add(*lhs_iter, carry);
-    ++lhs_iter;
-    if (lhs_iter == span().end()) {
-      IncrementSize();
-      *lhs_iter = carry;
-      break;
-    }
-  }
-  ShrinkToFit();
-  return *this;
-}
-
-Integer &Integer::SubtractStartingAt(uint64_t n, uintptr_t offset) {
-  EnsureCapacity(std::max(span().size(), offset + 1) + 1);
-  auto lhs_iter = std::next(span().begin(), offset);
-
-  uint64_t carry = n;
-  while (carry != 0) {
-    uint64_t previous_carry    = carry;
-    std::tie(*lhs_iter, carry) = Subtract(*lhs_iter, carry);
-    ++lhs_iter;
-    if (lhs_iter == span().end()) {
-      IncrementSize();
-      *lhs_iter = carry;
-      break;
-    }
-  }
-  ShrinkToFit();
-  return *this;
-}
-
-Integer &Integer::AddStartingAt(int64_t n, uintptr_t offset) {
-  if (n < 0) {
-    return SubtractStartingAt(static_cast<uint64_t>(-n), offset);
-  } else {
-    return AddStartingAt(static_cast<uint64_t>(n), offset);
-  }
-}
-
-Integer &Integer::SubtractStartingAt(int64_t n, uintptr_t offset) {
-  if (n < 0) {
-    return AddStartingAt(static_cast<uint64_t>(-n), offset);
-  } else {
-    return SubtractStartingAt(static_cast<uint64_t>(n), offset);
-  }
-}
-
-Integer &Integer::AddStartingAt(Integer const &rhs, uintptr_t offset) {
+Integer &Integer::SignSafeAddition(Integer const &rhs, uintptr_t offset) {
   EnsureCapacity(std::max(span().size(), rhs.span().size() + offset) + 1);
   auto lhs_iter = std::next(span().begin(), offset);
   auto rhs_end  = rhs.span().end();
@@ -145,19 +92,72 @@ Integer &Integer::AddStartingAt(Integer const &rhs, uintptr_t offset) {
   return *this;
 }
 
-Integer &Integer::operator+=(Integer const &rhs) {
-  return AddStartingAt(rhs, 0);
+Integer &Integer::SignSafeSubtraction(Integer const &rhs, uintptr_t offset) {
+  EnsureCapacity(std::max(span().size(), rhs.span().size() + offset) + 1);
+  auto lhs_iter = std::next(span().begin(), offset);
+  auto rhs_end  = rhs.span().end();
+  bool carry = false;
+  for (auto rhs_iter = rhs.span().begin(); rhs_iter != rhs_end;
+       ++lhs_iter, ++rhs_iter) {
+    uintptr_t previous_value = *lhs_iter;
+    *lhs_iter -= *rhs_iter + (carry ? 1 : 0);
+    carry = (previous_value < *rhs_iter);
+  }
+  if (carry) { --*lhs_iter; }
+  ShrinkToFit();
+  return *this;
 }
 
-Integer &Integer::operator-=(Integer const &rhs) { return *this += -rhs; }
+Integer &Integer::operator+=(Integer const &rhs) {
+  if (IsNegative(*this)) {
+    negate();
+    *this -= rhs;
+    if (not IsZero()) { negate(); }
+  } else {
+    if (IsNegative(rhs)) {
+      if (MagnitudeLess(*this, rhs)) {
+        Integer result = rhs;
+        result.SignSafeSubtraction(*this, 0);
+        *this = std::move(result);
+      } else {
+        SignSafeSubtraction(rhs, 0);
+      }
+    } else {
+      SignSafeAddition(rhs, 0);
+    }
+  }
+  return *this;
+}
+
+Integer &Integer::operator-=(Integer const &rhs) {
+  if (IsNegative(*this)) {
+    negate();
+    *this += rhs;
+    if (not IsZero()) { negate(); }
+  } else {
+    if (IsNegative(rhs)) {
+      SignSafeAddition(rhs, 0);
+    } else {
+      if (MagnitudeLess(*this, rhs)) {
+        Integer result = rhs;
+        result.SignSafeSubtraction(*this, 0);
+        *this = std::move(result);
+        negate();
+      } else {
+        SignSafeSubtraction(rhs, 0);
+      }
+    }
+  }
+  return *this;
+}
 
 Integer operator*(Integer const &lhs, Integer const &rhs) {
   Integer result;
   result.EnsureCapacity(lhs.span().size() + rhs.span().size());
   for (auto lhs_iter = lhs.span().begin(); lhs_iter != lhs.span().end();
        ++lhs_iter) {
-    result.AddStartingAt(*lhs_iter * rhs,
-                         std::distance(lhs.span().begin(), lhs_iter));
+    result.SignSafeAddition(*lhs_iter * rhs,
+                            std::distance(lhs.span().begin(), lhs_iter));
   }
 
   if (Integer::IsNegative(lhs) != Integer::IsNegative(rhs)) { result.negate(); }
@@ -196,15 +196,16 @@ void Integer::EnsureCapacity(size_t capacity) {
   uint64_t *ptr = new uint64_t[data_[2]];
   std::memcpy(ptr, span().data(), span().size() * sizeof(uint64_t));
   delete span().data();
-  data_[0] = reinterpret_cast<uintptr_t>(ptr);
+  data_[0] = reinterpret_cast<uintptr_t>(ptr) | (data_[0] & 1);
+}
+
+bool Integer::IsZero() const {
+  return span().size() == 1 and span().front() == 0;
 }
 
 void Integer::ShrinkToFit() {
-  if (span().size() == 1) { return; }
-  if (span().back() == 0) {
-    --data_[1];
-    ShrinkToFit();
-  }
+  while (span().size() > 1 and span().back() == 0) { --data_[1]; }
+  if (IsZero()) { data_[0] &= ~uintptr_t{1}; }
 }
 
 void Integer::IncrementSize() {
@@ -232,9 +233,7 @@ bool operator==(Integer const &lhs, Integer const &rhs) {
   return true;
 }
 
-bool operator<(Integer const &lhs, Integer const &rhs) {
-  if (lhs.sign() < rhs.sign()) { return true; }
-  if (lhs.sign() > rhs.sign()) { return false; }
+bool Integer::MagnitudeLess(Integer const &lhs, Integer const &rhs) {
   if (lhs.span().size() < rhs.span().size()) { return true; }
   if (lhs.span().size() > rhs.span().size()) { return false; }
   auto lhs_iter = lhs.span().end() - 1;
@@ -245,6 +244,12 @@ bool operator<(Integer const &lhs, Integer const &rhs) {
     if (*lhs_iter > *rhs_iter) { return Integer::IsNegative(lhs); }
   }
   return false;
+}
+
+bool operator<(Integer const &lhs, Integer const &rhs) {
+  if (lhs.sign() < rhs.sign()) { return true; }
+  if (lhs.sign() > rhs.sign()) { return false; }
+  return Integer::MagnitudeLess(lhs, rhs);
 }
 
 }  // namespace chalk
