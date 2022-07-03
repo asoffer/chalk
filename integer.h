@@ -10,7 +10,7 @@
 
 namespace chalk {
 
-// A type sufficient for holding arbitrarily large integers (limited only by
+// `Integer` is a type representing arbitrarily large integers (limited only by
 // system memory constraints).
 struct Integer {
   Integer(uint64_t n = 0);
