@@ -8,6 +8,7 @@ namespace chalk {
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::SizeIs;
+using ::testing::UnorderedElementsAre;
 
 TEST(DyckPath, DefaultConstruction) {
   DyckPath p;
@@ -117,6 +118,60 @@ TEST(DyckPath, Bounce) {
                               DyckPath::Step::Up, DyckPath::Step::Down,
                               DyckPath::Step::Down, DyckPath::Step::Down}),
               2);
+}
+
+TEST(DyckPath, Lift) {
+  EXPECT_EQ(DyckPath::Lift(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
+            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                      DyckPath::Step::Down, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath::Lift(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Down}),
+            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                      DyckPath::Step::Down, DyckPath::Step::Up,
+                      DyckPath::Step::Down, DyckPath::Step::Down}));
+}
+
+TEST(DyckPath, Concatenate){
+  EXPECT_EQ(DyckPath::Concatenate(
+                DyckPath{}, DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
+            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath::Concatenate(
+                DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}, DyckPath{}),
+            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(
+      DyckPath::Concatenate(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down},
+                            DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
+      (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
+                DyckPath::Step::Down}));
+}
+
+TEST(DyckPath, All) {
+  EXPECT_THAT(DyckPath::All(0), UnorderedElementsAre(DyckPath{}));
+  EXPECT_THAT(DyckPath::All(1), UnorderedElementsAre(DyckPath{
+                                    DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_THAT(
+      DyckPath::All(2),
+      UnorderedElementsAre(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                    DyckPath::Step::Down, DyckPath::Step::Down},
+                           DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_THAT(
+      DyckPath::All(3),
+      UnorderedElementsAre(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                    DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Down, DyckPath::Step::Down},
+                           DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                    DyckPath::Step::Down, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Down},
+                           DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                    DyckPath::Step::Down, DyckPath::Step::Up,
+                                    DyckPath::Step::Down, DyckPath::Step::Down},
+                           DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Up,
+                                    DyckPath::Step::Down, DyckPath::Step::Down},
+                           DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Down,
+                                    DyckPath::Step::Up, DyckPath::Step::Down}));
 }
 
 }  // namespace chalk

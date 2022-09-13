@@ -1,3 +1,4 @@
+#include <iostream>
 #include "combinatorics/dyck_path.h"
 
 namespace chalk {
@@ -46,6 +47,38 @@ size_t Bounce(DyckPath const& path) {
   }
 
   return result;
+}
+
+DyckPath DyckPath::Concatenate(DyckPath lhs, DyckPath const& rhs) {
+  lhs.implementation_.insert(lhs.implementation_.end(),
+                             rhs.implementation_.begin(),
+                             rhs.implementation_.end());
+  return lhs;
+}
+
+DyckPath DyckPath::Lift(DyckPath const& path) {
+  auto result = path;
+  result.implementation_.insert(result.implementation_.begin(),
+                                static_cast<bool>(Step::Up));
+  result.implementation_.push_back(static_cast<bool>(Step::Down));
+  return result;
+}
+
+std::vector<DyckPath> DyckPath::All(size_t n) {
+  if (n == 0) { return {DyckPath{}}; }
+  if (n == 1) { return {DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}}; }
+
+  std::vector<DyckPath> results = All(n -1);
+  for (auto& path : results) { path = Lift(path); }
+
+  for (size_t i = 0; i + 1 < n; ++i) {
+    for (auto const& lhs : DyckPath::All(i)) {
+      for (auto const& rhs : DyckPath::All(n - i - 1)) {
+        results.push_back(DyckPath::Concatenate(DyckPath::Lift(lhs), rhs));
+      }
+    }
+  }
+  return results;
 }
 
 }  // namespace chalk

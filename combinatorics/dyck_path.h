@@ -2,6 +2,7 @@
 #define CHALK_COMBINATORICS_DYCK_PATH_H
 
 #include <cassert>
+#include <ostream>
 #include <vector>
 
 namespace chalk {
@@ -35,6 +36,20 @@ struct DyckPath {
     assert(n < size());
     return static_cast<Step>(implementation_[n]);
   }
+
+  // Returns a container containing all `DyckPath`s consisting of `n` upsteps
+  // and `n` downsteps.
+  static std::vector<DyckPath> All(size_t n);
+
+  // Returns the `DyckPath` constructed by concatenating `lhs` and `rhs together.
+  static DyckPath Concatenate(DyckPath lhs, DyckPath const &rhs);
+
+  // Returns the `DyckPath` constructed from `p` by first having an upstem, then
+  // the path `p`, then a final downstep.
+  static DyckPath Lift(DyckPath const &p);
+
+  bool operator==(DyckPath const &lhs) const = default;
+  bool operator!=(DyckPath const &lhs) const = default;
 
   struct const_iterator : private std::vector<bool>::const_iterator {
    private:
@@ -92,6 +107,14 @@ struct DyckPath {
     return const_iterator(implementation_.begin());
   }
   const_iterator end() const { return const_iterator(implementation_.end()); }
+
+  friend std::ostream &operator<<(std::ostream &os, DyckPath const &p) {
+    os << "DyckPath[";
+    for (DyckPath::Step step : p) {
+      os << (step == DyckPath::Step::Up ? "(" : ")");
+    }
+    return os << "]";
+  }
 
  private:
   std::vector<bool> implementation_;
