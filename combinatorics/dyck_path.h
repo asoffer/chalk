@@ -51,6 +51,11 @@ struct DyckPath {
   bool operator==(DyckPath const &lhs) const = default;
   bool operator!=(DyckPath const &lhs) const = default;
 
+  template <typename H>
+  friend H AbslHashValue(H h, DyckPath const &p) {
+    return H::combine(std::move(h), p.implementation_);
+  }
+
   struct const_iterator : private std::vector<bool>::const_iterator {
    private:
     using base = std::vector<bool>::const_iterator;
