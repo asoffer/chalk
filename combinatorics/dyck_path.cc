@@ -49,7 +49,7 @@ size_t Bounce(DyckPath const& path) {
   return result;
 }
 
-DyckPath DyckPath::Concatenate(DyckPath lhs, DyckPath const& rhs) {
+DyckPath DyckPath::ConcatenateImpl(DyckPath lhs, DyckPath const& rhs) {
   lhs.implementation_.insert(lhs.implementation_.end(),
                              rhs.implementation_.begin(),
                              rhs.implementation_.end());
@@ -64,11 +64,29 @@ DyckPath DyckPath::Lift(DyckPath const& path) {
   return result;
 }
 
+DyckPath DyckPath::Peak(size_t height) {
+  DyckPath p;
+  p.implementation_.reserve(height * 2);
+  p.implementation_.resize(height, static_cast<bool>(Step::Up));
+  p.implementation_.resize(height * 2, static_cast<bool>(Step::Down));
+  return p;
+}
+
+DyckPath DyckPath::Minimal(size_t peaks) {
+  DyckPath p;
+  p.implementation_.reserve(peaks * 2);
+  for (size_t i = 0; i < peaks; ++i) {
+    p.implementation_.push_back(static_cast<bool>(Step::Up));
+    p.implementation_.push_back(static_cast<bool>(Step::Down));
+  }
+  return p;
+}
+
 std::vector<DyckPath> DyckPath::All(size_t n) {
   if (n == 0) { return {DyckPath{}}; }
   if (n == 1) { return {DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}}; }
 
-  std::vector<DyckPath> results = All(n -1);
+  std::vector<DyckPath> results = All(n - 1);
   for (auto& path : results) { path = Lift(path); }
 
   for (size_t i = 0; i + 1 < n; ++i) {

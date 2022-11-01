@@ -131,7 +131,71 @@ TEST(DyckPath, Lift) {
                       DyckPath::Step::Down, DyckPath::Step::Down}));
 }
 
-TEST(DyckPath, Concatenate){
+TEST(DyckPath, Peak) {
+  EXPECT_EQ(DyckPath::Peak(0), DyckPath{});
+  EXPECT_EQ(DyckPath::Peak(1), (DyckPath{
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Down,
+                               }));
+  EXPECT_EQ(DyckPath::Peak(2), (DyckPath{
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                               }));
+  EXPECT_EQ(DyckPath::Peak(3), (DyckPath{
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                               }));
+  EXPECT_EQ(DyckPath::Peak(4), (DyckPath{
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Up,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                                   DyckPath::Step::Down,
+                               }));
+}
+
+TEST(DyckPath, Minimal) {
+  EXPECT_EQ(DyckPath::Minimal(0), DyckPath{});
+  EXPECT_EQ(DyckPath::Minimal(1), (DyckPath{
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                  }));
+  EXPECT_EQ(DyckPath::Minimal(2), (DyckPath{
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                  }));
+  EXPECT_EQ(DyckPath::Minimal(3), (DyckPath{
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                  }));
+  EXPECT_EQ(DyckPath::Minimal(4), (DyckPath{
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                      DyckPath::Step::Up,
+                                      DyckPath::Step::Down,
+                                  }));
+}
+
+TEST(DyckPath, Concatenate) {
   EXPECT_EQ(DyckPath::Concatenate(
                 DyckPath{}, DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
             (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
@@ -143,6 +207,14 @@ TEST(DyckPath, Concatenate){
                             DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
       (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
                 DyckPath::Step::Down}));
+
+  EXPECT_EQ(DyckPath::Concatenate(
+                DyckPath{}, DyckPath{DyckPath::Step::Up, DyckPath::Step::Down},
+                DyckPath{}),
+            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath::Concatenate(DyckPath::Minimal(1), DyckPath::Minimal(2),
+                                  DyckPath::Minimal(3), DyckPath::Minimal(4)),
+            DyckPath::Minimal(10));
 }
 
 TEST(DyckPath, All) {

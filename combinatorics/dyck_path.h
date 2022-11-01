@@ -2,6 +2,7 @@
 #define CHALK_COMBINATORICS_DYCK_PATH_H
 
 #include <cassert>
+#include <concepts>
 #include <ostream>
 #include <vector>
 
@@ -25,24 +26,10 @@ struct DyckPath {
 
   // Returns a `DyckPath` consisting of `height` up steps followed by `height`
   // down steps.
-  static DyckPath Peak(size_t height) {
-    DyckPath p;
-    p.implementation_.reserve(height * 2);
-    p.implementation_.resize(height, static_cast<bool>(Step::Up));
-    p.implementation_.resize(height * 2, static_cast<bool>(Step::Down));
-    return p;
-  }
+  static DyckPath Peak(size_t height);
 
   // Returns a `DyckPath` consisting of `peaks` up/down pairs.
-  static DyckPath Minimal(size_t peaks) {
-    DyckPath p;
-    p.implementation_.reserve(peaks* 2);
-    for (size_t i = 0; i < peaks; ++i) {
-      p.implementation_.push_back(static_cast<bool>(Step::Up));
-      p.implementation_.push_back(static_cast<bool>(Step::Down));
-    }
-    return p;
-  }
+  static DyckPath Minimal(size_t peaks);
 
   // Returns the length of the path in terms of the number of steps taken
   // (always an even number).
@@ -64,7 +51,11 @@ struct DyckPath {
 
   // Returns the `DyckPath` constructed by concatenating `lhs` and `rhs
   // together.
-  static DyckPath Concatenate(DyckPath lhs, DyckPath const &rhs);
+  static DyckPath Concatenate(DyckPath lhs,
+                              std::same_as<DyckPath> auto const &...rhs) {
+    ((lhs = ConcatenateImpl(std::move(lhs), rhs)), ...);
+    return lhs;
+  }
 
   // Returns the `DyckPath` constructed from `p` by first having an upstem, then
   // the path `p`, then a final downstep.
@@ -148,6 +139,8 @@ struct DyckPath {
   }
 
  private:
+  static DyckPath ConcatenateImpl(DyckPath lhs, DyckPath const &rhs);
+
   std::vector<bool> implementation_;
 };
 
