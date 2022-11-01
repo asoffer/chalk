@@ -1,4 +1,4 @@
-#include "combinatorics/partition.h"
+#include "chalk/combinatorics/partition.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

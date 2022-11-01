@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "absl/container/flat_hash_map.h"
-#include "combinatorics/partition.h"
+#include "chalk/combinatorics/partition.h"
 
 namespace chalk {
 

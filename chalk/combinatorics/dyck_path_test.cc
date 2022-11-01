@@ -1,4 +1,4 @@
-#include "combinatorics/dyck_path.h"
+#include "chalk/combinatorics/dyck_path.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

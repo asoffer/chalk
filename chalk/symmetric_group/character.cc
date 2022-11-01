@@ -1,4 +1,4 @@
-#include "symmetric_group/character.h"
+#include "chalk/symmetric_group/character.h"
 
 #include <cassert>
 

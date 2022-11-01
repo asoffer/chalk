@@ -3,7 +3,6 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "composition",
     hdrs = ["composition.h"],
-    # srcs = ["composition.cc"],
     deps = [],
 )
 
@@ -21,8 +20,7 @@ cc_library(
     hdrs = ["dyck_path.h"],
     srcs = ["dyck_path.cc"],
     deps = [
-        "//:integer",
-        "//base:iterator"
+        "//chalk:integer",
     ],
 )
 
@@ -40,8 +38,8 @@ cc_library(
     hdrs = ["partition.h"],
     srcs = ["partition.cc"],
     deps = [
-        "//:integer",
-        "//base:iterator"
+        "//chalk:integer",
+        "//chalk/base:iterator"
     ],
 )
 

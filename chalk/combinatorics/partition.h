@@ -8,8 +8,8 @@
 #include <string>
 #include <string_view>
 
-#include "base/iterator.h"
-#include "integer.h"
+#include "chalk/base/iterator.h"
+#include "chalk/integer.h"
 
 namespace chalk {
 

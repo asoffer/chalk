@@ -1,5 +1,5 @@
 #include <iostream>
-#include "combinatorics/dyck_path.h"
+#include "chalk/combinatorics/dyck_path.h"
 
 namespace chalk {
 

@@ -1,4 +1,4 @@
-#include "integer.h"
+#include "chalk/integer.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"

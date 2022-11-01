@@ -1,4 +1,4 @@
-#include "combinatorics/composition.h"
+#include "chalk/combinatorics/composition.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

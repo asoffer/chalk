@@ -7,8 +7,8 @@
 #include "absl/functional/function_ref.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
-#include "combinatorics/dyck_path.h"
-#include "combinatorics/partition.h"
+#include "chalk/combinatorics/dyck_path.h"
+#include "chalk/combinatorics/partition.h"
 
 size_t ValidateInputs(absl::Span<char const* const> input) {
   if (input.size() != 2) {

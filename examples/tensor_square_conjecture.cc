@@ -2,8 +2,8 @@
 #include <vector>
 
 #include "absl/types/span.h"
-#include "combinatorics/partition.h"
-#include "symmetric_group/character.h"
+#include "chalk/combinatorics/partition.h"
+#include "chalk/symmetric_group/character.h"
 
 size_t ValidateInputs(absl::Span<char const * const> input) {
   if (input.size() != 2) {
