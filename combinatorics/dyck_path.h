@@ -23,6 +23,27 @@ struct DyckPath {
     }
   }
 
+  // Returns a `DyckPath` consisting of `height` up steps followed by `height`
+  // down steps.
+  static DyckPath Peak(size_t height) {
+    DyckPath p;
+    p.implementation_.reserve(height * 2);
+    p.implementation_.resize(height, static_cast<bool>(Step::Up));
+    p.implementation_.resize(height * 2, static_cast<bool>(Step::Down));
+    return p;
+  }
+
+  // Returns a `DyckPath` consisting of `peaks` up/down pairs.
+  static DyckPath Minimal(size_t peaks) {
+    DyckPath p;
+    p.implementation_.reserve(peaks* 2);
+    for (size_t i = 0; i < peaks; ++i) {
+      p.implementation_.push_back(static_cast<bool>(Step::Up));
+      p.implementation_.push_back(static_cast<bool>(Step::Down));
+    }
+    return p;
+  }
+
   // Returns the length of the path in terms of the number of steps taken
   // (always an even number).
   constexpr size_t size() const { return implementation_.size(); }
@@ -41,7 +62,8 @@ struct DyckPath {
   // and `n` downsteps.
   static std::vector<DyckPath> All(size_t n);
 
-  // Returns the `DyckPath` constructed by concatenating `lhs` and `rhs together.
+  // Returns the `DyckPath` constructed by concatenating `lhs` and `rhs
+  // together.
   static DyckPath Concatenate(DyckPath lhs, DyckPath const &rhs);
 
   // Returns the `DyckPath` constructed from `p` by first having an upstem, then
@@ -61,6 +83,8 @@ struct DyckPath {
     using base = std::vector<bool>::const_iterator;
 
    public:
+    using value_type = Step;
+
     const_iterator() = default;
     explicit const_iterator(base b) : base(b) {}
 
@@ -68,24 +92,26 @@ struct DyckPath {
       ++static_cast<base &>(*this);
       return *this;
     }
-    auto &operator++(int) {
+    const_iterator operator++(int) {
+      auto copy = *this;
       static_cast<base &>(*this)++;
-      return *this;
+      return copy;
     }
     auto &operator--() {
       --static_cast<base &>(*this);
       return *this;
     }
-    auto &operator--(int) {
+    const_iterator operator--(int) {
+      auto copy = *this;
       static_cast<base &>(*this)--;
-      return *this;
+      return copy;
     }
     auto &operator+=(int rhs) {
-      static_cast<base&>(*this) += rhs;
+      static_cast<base &>(*this) += rhs;
       return *this;
     }
     auto &operator-=(int rhs) {
-      static_cast<base&>(*this) -= rhs;
+      static_cast<base &>(*this) -= rhs;
       return *this;
     }
 
@@ -129,11 +155,11 @@ struct DyckPath {
 // (rotated 45 degrees) which fit underneath the path and above x-axis. There is
 // exactly one path with area zero (the path alternating between up and down
 // steps).
-size_t Area(DyckPath const& path);
+size_t Area(DyckPath const &path);
 
 // Returns the "bounce" statistic for `path` defined in
 // https://www.sciencedirect.com/science/article/pii/S0195669804000320
-size_t Bounce(DyckPath const& path);
+size_t Bounce(DyckPath const &path);
 
 }  // namespace chalk
 

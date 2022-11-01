@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iterator>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -7,6 +8,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "combinatorics/dyck_path.h"
+#include "combinatorics/partition.h"
 
 size_t ValidateInputs(absl::Span<char const* const> input) {
   if (input.size() != 2) {
@@ -131,7 +133,83 @@ Result Map(
   return result;
 }
 
-std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const&) {
+std::vector<size_t> Composition(chalk::DyckPath const& path) {
+  std::vector<size_t> composition;
+  bool going_up        = true;
+  size_t path_height   = 0;
+  size_t bounce_height = 0;
+  for (auto step : path) {
+    path_height += (step == chalk::DyckPath::Step::Up) ? 1 : -1;
+    if (bounce_height == 0) { going_up = true; }
+    if (going_up and path_height < bounce_height) {
+      composition.push_back(bounce_height);
+      going_up = false;
+    }
+    bounce_height += going_up ? 1 : -1;
+  }
+  return composition;
+}
+
+chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
+  chalk::DyckPath path;
+  for (auto part : partition) {
+    path = chalk::DyckPath::Concatenate(std::move(path),
+                                        chalk::DyckPath::Peak(part));
+  }
+  return path;
+}
+
+std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
+  auto comp = Composition(path);
+  if (not std::is_sorted(comp.rbegin(), comp.rend())) { return std::nullopt; }
+  auto partition = chalk::Partition(comp.begin(), comp.end());
+  auto partition_path =
+      DyckPathFromPartition(chalk::Partition(comp.begin(), comp.end()));
+  if (path == partition_path) {
+    return DyckPathFromPartition(partition.conjugate());
+  } else if (partition.parts() == 2) {
+    auto first_part  = partition[0];
+    auto second_part = partition[1];
+    auto iter        = std::next(path.begin(), first_part + 1);
+
+    std::vector<bool> first_chunk, second_chunk;
+    auto end_iter = iter + (second_part - 1) * 2;
+
+    for (; iter != end_iter; ++iter) {
+      first_chunk.push_back(*iter == chalk::DyckPath::Step::Up);
+    }
+    end_iter = path.end() - second_part;
+    for (; iter != end_iter; ++iter) {
+      second_chunk.push_back(*iter == chalk::DyckPath::Step::Up);
+    }
+
+    int chunks =
+        second_part - std::count(first_chunk.begin(), first_chunk.end(), true);
+    if (first_chunk.empty()) {
+      std::cerr << chunks << " chunks\n";
+      auto iter   = std::find(second_chunk.begin(), second_chunk.end(), true);
+      size_t n    = std::distance(iter, second_chunk.end());
+      auto result = chalk::DyckPath::Concatenate(
+          chalk::DyckPath::Concatenate(chalk::DyckPath::Minimal(n - 1),
+                                       chalk::DyckPath::Peak(2)),
+          chalk::DyckPath::Minimal(path.size() / 2 - (n + 1)));
+      for (auto const& line :
+           MergeImages(PathAsImage(path), PathAsImage(partition_path))) {
+        std::cerr << " | " << line << "\n";
+      }
+      return result;
+
+    } else {
+      for (bool b : first_chunk) { std::cerr << "-+"[b]; }
+      std::cerr << "|";
+      for (bool b : second_chunk) { std::cerr << "-+"[b]; }
+      std::cerr << "\n";
+      for (auto const& line :
+           MergeImages(PathAsImage(path), PathAsImage(partition_path))) {
+        std::cerr << " | " << line << "\n";
+      }
+    }
+  }
   return std::nullopt;
 }
 
@@ -145,6 +223,13 @@ int main(int argc, char const* argv[]) {
   for (auto const& [stats, paths] : unclassified) {
     unclassified_count += paths.size();
   }
+
+  for (auto const& [p1, p2] : inferred) {
+    for (auto const& line : MergeImages(PathAsImage(p1), PathAsImage(p2))) {
+      std::cerr << line << "\n";
+    }
+  }
+
   absl::Format(&std::cerr, R"(
   Mapped:       %u
   Inferred:     %u
@@ -152,11 +237,5 @@ int main(int argc, char const* argv[]) {
   )",
                2 * mapped.size() - mapped_self_dual,
                2 * inferred.size() - inferred_self_dual, unclassified_count);
-  for (auto const& [p1, p2] : inferred) {
-    for (auto const& line : MergeImages(PathAsImage(p1), PathAsImage(p2))) {
-      std::cerr << line << "\n";
-    }
-  }
-
   return 0;
 }
