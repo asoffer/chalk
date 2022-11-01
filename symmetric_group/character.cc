@@ -129,7 +129,6 @@ int64_t MurnaghanNakayama(BoundaryPartition const &p,
   if (auto [iter, inserted] = cache.try_emplace(pair); not inserted) {
     return iter->second;
   }
-  absl::Span original = parts;
 
   int64_t result = 0;
 

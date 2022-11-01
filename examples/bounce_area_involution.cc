@@ -8,7 +8,7 @@
 #include "absl/types/span.h"
 #include "combinatorics/dyck_path.h"
 
-size_t ValidateInputs(absl::Span<char const * const> input) {
+size_t ValidateInputs(absl::Span<char const* const> input) {
   if (input.size() != 2) {
     std::cerr << "Must have exactly one input.\n";
     std::abort();
@@ -23,13 +23,13 @@ size_t ValidateInputs(absl::Span<char const * const> input) {
   return n;
 }
 
-std::vector<std::string> PathAsImage(chalk::DyckPath const & path) {
+std::vector<std::string> PathAsImage(chalk::DyckPath const& path) {
   std::vector<std::string> result{""};
-  size_t height = 0;
+  size_t height  = 0;
   size_t counter = 0;
   for (chalk::DyckPath::Step step : path) {
     ++counter;
-    bool is_up = (step == chalk::DyckPath::Step::Up);
+    bool is_up          = (step == chalk::DyckPath::Step::Up);
     size_t write_height = height - (is_up ? 0 : 1);
 
     for (size_t i = 0; i < write_height; ++i) {
@@ -47,8 +47,8 @@ std::vector<std::string> PathAsImage(chalk::DyckPath const & path) {
 }
 
 std::vector<std::string> MergeImages(std::vector<std::string> const& lhs,
-    std::vector<std::string> const& rhs,
-    size_t separator = 4) {
+                                     std::vector<std::string> const& rhs,
+                                     size_t separator = 4) {
   std::vector<std::string> result;
 
   auto l = lhs.rbegin();
@@ -74,7 +74,7 @@ struct Result {
                       absl::flat_hash_set<chalk::DyckPath>>
       unclassified;
   size_t inferred_self_dual = 0;
-  size_t mapped_self_dual = 0;
+  size_t mapped_self_dual   = 0;
 };
 Result Map(
     size_t n,
@@ -107,7 +107,7 @@ Result Map(
       result.mapped.emplace(*std::move(maybe_mapped), std::move(path));
     }
   }
-  for (auto & [stats, paths] : paths_by_stats) {
+  for (auto& [stats, paths] : paths_by_stats) {
     auto [area, bounce] = stats;
     if (area > bounce) { continue; }
 
@@ -127,16 +127,15 @@ Result Map(
             std::move(paths_by_stats[std::pair(bounce, area)]);
       }
     }
-
   }
   return result;
 }
 
-std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
+std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const&) {
   return std::nullopt;
 }
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const* argv[]) {
   size_t n = ValidateInputs(absl::MakeConstSpan(argv, argc));
 
   auto [mapped, inferred, unclassified, inferred_self_dual, mapped_self_dual] =

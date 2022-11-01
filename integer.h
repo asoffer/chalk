@@ -1,3 +1,6 @@
+#ifndef CHALK_INTEGER_H
+#define CHALK_INTEGER_H
+
 #include <algorithm>
 #include <cassert>
 #include <concepts>
@@ -9,6 +12,13 @@
 #include "absl/types/span.h"
 
 namespace chalk {
+namespace internal_integer {
+
+auto as_unsigned(std::integral auto n) -> std::make_unsigned_t<decltype(n)> {
+  return n;
+}
+
+}  // namespace internal_integer
 
 // `Integer` is a type representing arbitrarily large integers (limited only by
 // system memory constraints).
@@ -35,7 +45,8 @@ struct Integer {
   friend bool operator==(std::integral auto lhs, Integer const &rhs) {
     if (rhs.span().size() != 1) { return false; }
     if constexpr (std::signed_integral<decltype(lhs)>) {
-      return ((lhs >= 0) ^ IsNegative(rhs)) and rhs.span()[0] == std::abs(lhs);
+      return ((lhs >= 0) ^ IsNegative(rhs)) and
+             rhs.span()[0] == static_cast<uint64_t>(std::abs(lhs));
     } else {
       return not IsNegative(rhs) and rhs.span()[0] == lhs;
     }
@@ -60,7 +71,8 @@ struct Integer {
     if constexpr (std::signed_integral<decltype(lhs)>) {
       if (IsNegative(lhs)) {
         if (IsNegative(rhs)) {
-          return rhs.span().size() == 1 and -lhs > rhs.span()[0];
+          return rhs.span().size() == 1 and
+                 internal_integer::as_unsigned(-lhs) > rhs.span()[0];
         } else {
           return true;
         }
@@ -68,7 +80,8 @@ struct Integer {
         if (IsNegative(rhs)) {
           return false;
         } else {
-          return rhs.span().size() > 1 or lhs < rhs.span()[0];
+          return rhs.span().size() > 1 or
+                 internal_integer::as_unsigned(lhs) < rhs.span()[0];
         }
       }
     } else {
@@ -80,7 +93,8 @@ struct Integer {
     if constexpr (std::signed_integral<decltype(rhs)>) {
       if (IsNegative(rhs)) {
         if (IsNegative(lhs)) {
-          return lhs.span().size() > 1 or lhs.span()[0] > -rhs;
+          return lhs.span().size() > 1 or
+                 lhs.span()[0] > internal_integer::as_unsigned(-rhs);
         } else {
           return false;
         }
@@ -88,7 +102,8 @@ struct Integer {
         if (IsNegative(lhs)) {
           return true;
         } else {
-          return lhs.span().size() == 1 and lhs.span()[0] < rhs;
+          return lhs.span().size() == 1 and
+                 lhs.span()[0] < internal_integer::as_unsigned(rhs);
         }
       }
     } else {
@@ -177,6 +192,21 @@ struct Integer {
     return lhs;
   }
 
+  template <std::integral T>
+  operator T() const {
+    assert(span().size() == 1);
+    if constexpr (std::is_unsigned_v<T>) {
+      return span()[0];
+    } else {
+      if (IsNegative(*this)) {
+        // TODO: Possible data loss here.
+        return -static_cast<int64_t>(span()[0]);
+      } else {
+        return span()[0];
+      }
+    }
+  }
+
   // Negation
   Integer operator-() const &;
   Integer operator-() &;
@@ -254,3 +284,5 @@ struct Integer {
 };
 
 }  // namespace chalk
+
+#endif  // CHALK_INTEGER_H

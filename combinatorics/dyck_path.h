@@ -34,7 +34,7 @@ struct DyckPath {
   // this->size()`.
   Step operator[](size_t n) const {
     assert(n < size());
-    return static_cast<Step>(implementation_[n]);
+    return static_cast<Step>(static_cast<bool>(implementation_[n]));
   }
 
   // Returns a container containing all `DyckPath`s consisting of `n` upsteps

@@ -85,7 +85,9 @@ def _impl(ctx):
     tool_paths = [
         tool_path(name = "gcc",     path = ctx.attr.compiler_path),
         tool_path(name = "ld",      path = "/usr/bin/ld"),
-        tool_path(name = "ar",      path = "/usr/bin/ar"),
+        tool_path(name = "ar",      path = {
+            "macosx": "/usr/bin/libtool",
+        }.get(ctx.attr.os, "/usr/bin/ar")),
         tool_path(name = "cpp",     path = "/bin/false"),
         tool_path(name = "gcov",    path = "/bin/false"),
         tool_path(name = "nm",      path = "/bin/false"),
@@ -102,33 +104,39 @@ def _impl(ctx):
         linking_flags([
             "-ldl",
             "-lm",
-            "-lpthread",
-            "-lffi",
-            "-rdynamic",
             "-lstdc++",
         ]),
         mode_dependent_flags({
-            "dbg": ["-g", "-O0", "-DICARUS_DEBUG"],
-            "opt": ["-O2", "-DNDEBUG"],
+            "dbg": ["-g", "-O0"],
+            "opt": ["-O2"],
         }),
 
     ]
 
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
-        toolchain_identifier = "asmjs-toolchain",
-        host_system_name = "i686-unknown-linux-gnu",
-        target_system_name = "asmjs-unknown-emscripten",
+        toolchain_identifier = "cc-toolchain",
+        host_system_name = "host",
+        target_system_name = "target",
         target_cpu = "gcc",
-        target_libc = "unknown",
+        target_libc = {
+          "macosx": "macosx",
+        }.get(ctx.attr.os, "unknown"),
         compiler = "gcc",
         abi_version = "unknown",
         abi_libc_version = "unknown",
-        cxx_builtin_include_directories = [
+        cxx_builtin_include_directories = {
+            "macosx": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/",
+                "/Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/",
+                "/Library/Developer/CommandLineTools/usr/lib/clang/14.0.0/include/",
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/",
+            ],
+        }.get(ctx.attr.os, [
             "/usr/lib",
             "/usr/include",
             "/usr/local/include",
-        ],
+        ]),
         tool_paths = tool_paths,
         features = features + [
             feature(name = "dbg"),
@@ -141,6 +149,7 @@ cc_toolchain_config = rule(
     implementation = _impl,
     attrs = {
         "compiler_path": attr.string(),
+        "os": attr.string(),
         "warnings": attr.string_list(),
     },
     provides = [CcToolchainConfigInfo],

@@ -80,8 +80,8 @@ struct SymmetricGroupCharacter {
     return *this;
   }
 
-  friend Integer InnerProduct(SymmetricGroupCharacter const &lhs,
-                              SymmetricGroupCharacter const &rhs) {
+  friend double InnerProduct(SymmetricGroupCharacter const &lhs,
+                             SymmetricGroupCharacter const &rhs) {
     if (lhs.values_.empty()) { return 0; }
     Integer result = 0;
     for (auto const &[partition, coefficient] : lhs.values_) {
@@ -89,7 +89,9 @@ struct SymmetricGroupCharacter {
       if (iter == rhs.values_.end()) { continue; }
       result += (iter->second * coefficient * CycleTypeCount(partition));
     }
-    return result / Factorial(lhs.values_.begin()->first.whole());
+    // TODO: Have this return a Rational once that exists.
+    return static_cast<double>(static_cast<int64_t>(result)) /
+           static_cast<int64_t>(Factorial(lhs.values_.begin()->first.whole()));
   }
 
   friend std::ostream &operator<<(std::ostream &os,
