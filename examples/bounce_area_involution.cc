@@ -159,55 +159,85 @@ chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
   return path;
 }
 
+struct TwoPartPath {
+  explicit TwoPartPath(const chalk::DyckPath& path) : comp_(Composition(path)) {
+    assert(comp_.size() == 2);
+    assert(comp_[0] >= comp_[1]);
+
+    // Skip the first `comp_[0]` up steps and the first required down-step.
+    auto iter = path.begin() + comp_[0] + 1;
+
+    // Ignore the last `comp_[1]` down-steps.
+    auto end_iter = path.end() - comp_[1];
+
+    size_t down_steps_before_switch = comp_[1] - 1;
+    for (; down_steps_before_switch != 0; ++iter) {
+      if (*iter == chalk::DyckPath::Step::Down) { --down_steps_before_switch; }
+      start_.push_back(*iter);
+    }
+    for (; iter != end_iter; ++iter) { end_.push_back(*iter); }
+  }
+
+  std::vector<size_t> gaps() const {
+    std::vector<size_t> result;
+    size_t count = 0;
+    for (auto step : end_) {
+      switch (step) {
+        case chalk::DyckPath::Step::Up: {
+          result.push_back(count);
+          count = 0;
+        } break;
+        case chalk::DyckPath::Step::Down: {
+          ++count;
+        } break;
+      }
+    }
+    return result;
+  }
+
+  std::vector<size_t> comp_;
+  std::vector<chalk::DyckPath::Step> start_, end_;
+};
+
 std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
   auto comp = Composition(path);
   if (not std::is_sorted(comp.rbegin(), comp.rend())) { return std::nullopt; }
+
   auto partition = chalk::Partition(comp.begin(), comp.end());
   auto partition_path =
       DyckPathFromPartition(chalk::Partition(comp.begin(), comp.end()));
   if (path == partition_path) {
     return DyckPathFromPartition(partition.conjugate());
   } else if (partition.parts() == 2) {
-    auto first_part  = partition[0];
-    auto second_part = partition[1];
-    auto iter        = std::next(path.begin(), first_part + 1);
+    TwoPartPath two_part_path(path);
 
-    std::vector<bool> first_chunk, second_chunk;
-    auto end_iter = iter + (second_part - 1) * 2;
+    std::vector<size_t> gaps = two_part_path.gaps();
+    if (gaps.size() == partition[1]) {
+      chalk::DyckPath result;
 
-    for (; iter != end_iter; ++iter) {
-      first_chunk.push_back(*iter == chalk::DyckPath::Step::Up);
-    }
-    end_iter = path.end() - second_part;
-    for (; iter != end_iter; ++iter) {
-      second_chunk.push_back(*iter == chalk::DyckPath::Step::Up);
-    }
-
-    int chunks =
-        second_part - std::count(first_chunk.begin(), first_chunk.end(), true);
-    if (first_chunk.empty()) {
-      std::cerr << chunks << " chunks\n";
-      auto iter   = std::find(second_chunk.begin(), second_chunk.end(), true);
-      size_t n    = std::distance(iter, second_chunk.end());
-      auto result = chalk::DyckPath::Concatenate(
-          chalk::DyckPath::Concatenate(chalk::DyckPath::Minimal(n - 1),
-                                       chalk::DyckPath::Peak(2)),
-          chalk::DyckPath::Minimal(path.size() / 2 - (n + 1)));
-      for (auto const& line :
-           MergeImages(PathAsImage(path), PathAsImage(partition_path))) {
-        std::cerr << " | " << line << "\n";
+      size_t total = path.size() / 2;
+      for (auto iter = gaps.rbegin(); iter != gaps.rend(); ++iter) {
+        total -= (*iter + 2);
+        result = chalk::DyckPath::Concatenate(std::move(result),
+                                              chalk::DyckPath::Peak(2),
+                                              chalk::DyckPath::Minimal(*iter));
       }
+
+      result =
+          chalk::DyckPath::Concatenate(chalk::DyckPath::Minimal(total), result);
+
       return result;
-
     } else {
-      for (bool b : first_chunk) { std::cerr << "-+"[b]; }
-      std::cerr << "|";
-      for (bool b : second_chunk) { std::cerr << "-+"[b]; }
-      std::cerr << "\n";
+      absl::Format(&std::cerr, "{ ");
+      std::vector<size_t> gaps = two_part_path.gaps();
+      for (auto n : gaps) { std::cerr << n << " "; }
+      std::cerr << "} (gaps)\n\n";
+
       for (auto const& line :
            MergeImages(PathAsImage(path), PathAsImage(partition_path))) {
         std::cerr << " | " << line << "\n";
       }
+      std::cerr << "\n\n";
     }
   }
   return std::nullopt;
