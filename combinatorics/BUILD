@@ -1,6 +1,22 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "composition",
+    hdrs = ["composition.h"],
+    # srcs = ["composition.cc"],
+    deps = [],
+)
+
+cc_test(
+    name = "composition_test",
+    srcs = ["composition_test.cc"],
+    deps = [
+        ":composition",
+        "@com_google_googletest//:gtest_main",
+    ]
+)
+
+cc_library(
     name = "dyck_path",
     hdrs = ["dyck_path.h"],
     srcs = ["dyck_path.cc"],
