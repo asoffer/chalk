@@ -45,16 +45,24 @@ struct BasicComposition {
     return total;
   }
 
+  auto begin() { return parts_.begin(); }
   auto begin() const { return parts_.begin(); }
   auto cbegin() const { return parts_.cbegin(); }
+  auto rbegin() { return parts_.rbegin(); }
   auto rbegin() const { return parts_.rbegin(); }
   auto crbegin() const { return parts_.crbegin(); }
+  auto end() { return parts_.end(); }
   auto end() const { return parts_.end(); }
   auto cend() const { return parts_.cend(); }
+  auto rend() { return parts_.rend(); }
   auto rend() const { return parts_.rend(); }
   auto crend() const { return parts_.crend(); }
 
-  value_type operator[](size_t i) const {
+  value_type &operator[](size_t i) {
+    assert(i < parts_.size());
+    return parts_[i];
+  }
+  value_type const &operator[](size_t i) const {
     assert(i < parts_.size());
     return parts_[i];
   }
@@ -84,7 +92,7 @@ struct BasicComposition {
     return os << ")";
   }
 
- private:
+ protected:
   explicit BasicComposition(representation_type parts)
       : parts_(std::move(parts)) {}
 

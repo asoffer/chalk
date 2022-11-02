@@ -4,11 +4,12 @@
 #include <algorithm>
 #include <cassert>
 #include <concepts>
-#include <ostream>
+#include <iostream>
 #include <string>
 #include <string_view>
 
 #include "chalk/base/iterator.h"
+#include "chalk/combinatorics/composition.h"
 #include "chalk/integer.h"
 
 namespace chalk {
@@ -65,24 +66,29 @@ struct AllPartitionsIterator {
 // Represents an integer partition, where each part is stored as a `PartType` in
 // contiguous storage in weakly descending order.
 template <std::integral PartType>
-struct BasicPartition {
+struct BasicPartition : private BasicComposition<PartType> {
+ private:
+  using Base = BasicComposition<PartType>;
+
+ public:
   using value_type     = PartType;
-  using const_iterator = typename std::basic_string<value_type>::const_iterator;
+  using const_iterator = typename Base::const_iterator;
+
+  // Constructs the unique partition of 0.
+  BasicPartition() = default;
 
   // Constructs a partition from the given parts.
   BasicPartition(std::initializer_list<value_type> parts)
-      : parts_(parts.begin(), parts.end()) {
-    std::sort(parts_.rbegin(), parts_.rend());
+      : Base(parts.begin(), parts.end()) {
+    std::sort(Base::rbegin(), Base::rend());
   }
 
   template <typename Iter>
-  explicit BasicPartition(Iter b, Iter e) : parts_(b, e) {
-    std::sort(parts_.rbegin(), parts_.rend());
+  explicit BasicPartition(Iter b, Iter e) : Base(b, e) {
+    std::sort(Base::rbegin(), Base::rend());
   }
 
-  static BasicPartition Trivial() {
-    return BasicPartition(std::basic_string<value_type>());
-  }
+  static BasicPartition Trivial() { return BasicPartition(); }
   static BasicPartition Rectangle(size_t count, value_type n) {
     return BasicPartition(std::basic_string<value_type>(count, n));
   }
@@ -92,47 +98,41 @@ struct BasicPartition {
   static BasicPartition Full(value_type n) { return Rectangle(1, n); }
 
   // Returns the number of parts in the partition.
-  constexpr size_t parts() const { return parts_.size(); }
+  using Base::parts;
 
   // Returns the integer `n` for which `*this` is a partition.
-  constexpr size_t whole() const {
-    size_t total = 0;
-    for (size_t n : parts_) { total += n; }
-    return total;
-  }
+  using Base::whole;
 
   // Returns the conjugate partition.
   BasicPartition conjugate() const {
-    BasicPartition result((std::basic_string<value_type>()));
-    result.parts_.reserve(parts_[0]);
+    BasicPartition result;
+    if (this->parts_.empty()) { return result; }
+    result.parts_.reserve(operator[](0));
     value_type last_part_size = 0;
     auto const next_largest = [&](value_type n) { return n > last_part_size; };
 
-    for (auto iter = parts_.crbegin(); iter != parts_.crend();
-         iter      = std::find_if(iter, parts_.crend(), next_largest)) {
+    for (auto iter = crbegin(); iter != crend();
+         iter      = std::find_if(iter, crend(), next_largest)) {
       for (; last_part_size < *iter; ++last_part_size) {
-        result.parts_.push_back(std::distance(iter, parts_.crend()));
+        result.append(std::distance(iter, crend()));
       }
     }
     return result;
   }
 
-  auto begin() const { return parts_.begin(); }
-  auto cbegin() const { return parts_.cbegin(); }
-  auto rbegin() const { return parts_.rbegin(); }
-  auto crbegin() const { return parts_.crbegin(); }
-  auto end() const { return parts_.end(); }
-  auto cend() const { return parts_.cend(); }
-  auto rend() const { return parts_.rend(); }
-  auto crend() const { return parts_.crend(); }
+  value_type const &operator[](size_t n) const { return Base::operator[](n); }
 
-  value_type operator[](size_t i) const {
-    assert(i < parts_.size());
-    return parts_[i];
-  }
+  auto begin() const { return Base::begin(); }
+  auto rbegin() const { return Base::rbegin(); }
+  auto cbegin() const { return Base::cbegin(); }
+  auto crbegin() const { return Base::crbegin(); }
+  auto end() const { return Base::end(); }
+  auto rend() const { return Base::rend(); }
+  auto cend() const { return Base::cend(); }
+  auto crend() const { return Base::crend(); }
 
   friend bool operator==(BasicPartition const &lhs, BasicPartition const &rhs) {
-    return lhs.parts_ == rhs.parts_;
+    return static_cast<Base const &>(lhs) == static_cast<Base const &>(rhs);
   }
 
   friend bool operator!=(BasicPartition const &lhs, BasicPartition const &rhs) {
@@ -145,15 +145,11 @@ struct BasicPartition {
   }
 
   friend std::ostream &operator<<(std::ostream &os, BasicPartition const &p) {
-    std::string_view separator = "(";
-    for (auto part : p.parts_) {
-      os << std::exchange(separator, ", ") << uint64_t{part};
-    }
-    return os << ")";
+    return os << static_cast<Base const &>(p);
   }
 
-  // Returns an iterator range that will iterate through all partitions of size
-  // `n` in lexicographic order.
+  // Returns an iterator range that will iterate through all partitions of
+  // size `n` in lexicographic order.
   static auto All(value_type n) {
     assert(n > 0);
     return base::iterator_range(
@@ -165,9 +161,7 @@ struct BasicPartition {
  private:
   friend struct internal_partition::AllPartitionsIterator<value_type>;
   explicit BasicPartition(std::basic_string<value_type> parts)
-      : parts_(std::move(parts)) {}
-
-  std::basic_string<value_type> parts_;
+      : Base(std::move(parts)) {}
 };
 
 using Partition = BasicPartition<uint8_t>;
@@ -205,8 +199,8 @@ Integer CycleTypeCount(BasicPartition<PartType> const &p) {
   return numerator / denominator;
 }
 
-// Returns the rank of the partition `p`. That is, returns the largest value `n`
-// for which the partition contains `n` parts of size at least `n`.
+// Returns the rank of the partition `p`. That is, returns the largest value
+// `n` for which the partition contains `n` parts of size at least `n`.
 template <std::integral PartType>
 PartType Rank(BasicPartition<PartType> const &p) {
   PartType n = 0;

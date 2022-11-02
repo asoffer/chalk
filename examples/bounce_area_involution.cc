@@ -133,23 +133,6 @@ Result Map(
   return result;
 }
 
-std::vector<size_t> Composition(chalk::DyckPath const& path) {
-  std::vector<size_t> composition;
-  bool going_up        = true;
-  size_t path_height   = 0;
-  size_t bounce_height = 0;
-  for (auto step : path) {
-    path_height += (step == chalk::DyckPath::Step::Up) ? 1 : -1;
-    if (bounce_height == 0) { going_up = true; }
-    if (going_up and path_height < bounce_height) {
-      composition.push_back(bounce_height);
-      going_up = false;
-    }
-    bounce_height += going_up ? 1 : -1;
-  }
-  return composition;
-}
-
 chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
   chalk::DyckPath path;
   for (auto part : partition) {
@@ -160,8 +143,8 @@ chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
 }
 
 struct TwoPartPath {
-  explicit TwoPartPath(const chalk::DyckPath& path) : comp_(Composition(path)) {
-    assert(comp_.size() == 2);
+  explicit TwoPartPath(const chalk::DyckPath& path) : comp_(BouncePath(path)) {
+    assert(comp_.parts() == 2);
     assert(comp_[0] >= comp_[1]);
 
     // Skip the first `comp_[0]` up steps and the first required down-step.
@@ -195,12 +178,12 @@ struct TwoPartPath {
     return result;
   }
 
-  std::vector<size_t> comp_;
+  chalk::Composition comp_;
   std::vector<chalk::DyckPath::Step> start_, end_;
 };
 
 std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
-  auto comp = Composition(path);
+  chalk::Composition comp = chalk::BouncePath(path);
   if (not std::is_sorted(comp.rbegin(), comp.rend())) { return std::nullopt; }
 
   auto partition = chalk::Partition(comp.begin(), comp.end());

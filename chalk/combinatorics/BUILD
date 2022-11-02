@@ -40,6 +40,7 @@ cc_library(
     hdrs = ["partition.h"],
     srcs = ["partition.cc"],
     deps = [
+        ":composition",
         "//chalk:integer",
         "//chalk/base:iterator"
     ],
