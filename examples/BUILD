@@ -5,6 +5,7 @@ cc_binary(
     srcs = ["bounce_area_involution.cc"],
     deps = [
         "//chalk/combinatorics:dyck_path",
+        "//chalk/combinatorics:image",
         "//chalk/combinatorics:partition",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

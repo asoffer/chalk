@@ -3,10 +3,10 @@
 
 #include <cassert>
 #include <concepts>
-#include <ostream>
 #include <vector>
 
 #include "chalk/combinatorics/composition.h"
+#include "chalk/combinatorics/image.h"
 
 namespace chalk {
 
@@ -132,13 +132,7 @@ struct DyckPath {
   }
   const_iterator end() const { return const_iterator(implementation_.end()); }
 
-  friend std::ostream &operator<<(std::ostream &os, DyckPath const &p) {
-    os << "DyckPath[";
-    for (DyckPath::Step step : p) {
-      os << (step == DyckPath::Step::Up ? "(" : ")");
-    }
-    return os << "]";
-  }
+  friend Image ChalkVisualize(DyckPath const &path);
 
  private:
   static DyckPath ConcatenateImpl(DyckPath lhs, DyckPath const &rhs);

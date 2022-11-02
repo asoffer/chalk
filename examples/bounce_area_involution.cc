@@ -8,6 +8,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "chalk/combinatorics/dyck_path.h"
+#include "chalk/combinatorics/image.h"
 #include "chalk/combinatorics/partition.h"
 
 size_t ValidateInputs(absl::Span<char const* const> input) {
@@ -23,50 +24,6 @@ size_t ValidateInputs(absl::Span<char const* const> input) {
   }
 
   return n;
-}
-
-std::vector<std::string> PathAsImage(chalk::DyckPath const& path) {
-  std::vector<std::string> result{""};
-  size_t height  = 0;
-  size_t counter = 0;
-  for (chalk::DyckPath::Step step : path) {
-    ++counter;
-    bool is_up          = (step == chalk::DyckPath::Step::Up);
-    size_t write_height = height - (is_up ? 0 : 1);
-
-    for (size_t i = 0; i < write_height; ++i) {
-      result[i].push_back(((i + height) % 2 == 0) ? '/' : '\\');
-    }
-    result[write_height].push_back(is_up ? '/' : '\\');
-    for (size_t i = write_height + 1; i < result.size(); ++i) {
-      result[i].push_back(' ');
-    }
-    height += (is_up ? 1 : -1);
-    if (height == result.size()) { result.emplace_back(counter, ' '); }
-  }
-  std::reverse(result.begin(), result.end());
-  return result;
-}
-
-std::vector<std::string> MergeImages(std::vector<std::string> const& lhs,
-                                     std::vector<std::string> const& rhs,
-                                     size_t separator = 4) {
-  std::vector<std::string> result;
-
-  auto l = lhs.rbegin();
-  auto r = rhs.rbegin();
-  for (; l != lhs.rend() and r != rhs.rend(); ++l, ++r) {
-    result.push_back(*l + std::string(separator, ' ') + *r);
-  }
-
-  for (; l != lhs.rend(); ++l) { result.push_back(*l); }
-
-  for (; r != rhs.rend(); ++r) {
-    result.push_back(std::string(separator + lhs.begin()->size(), ' ') + *r);
-  }
-
-  std::reverse(result.begin(), result.end());
-  return result;
 }
 
 struct Result {
@@ -215,11 +172,8 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
       for (auto n : gaps) { std::cerr << n << " "; }
       std::cerr << "} (gaps)\n\n";
 
-      for (auto const& line :
-           MergeImages(PathAsImage(path), PathAsImage(partition_path))) {
-        std::cerr << " | " << line << "\n";
-      }
-      std::cerr << "\n\n";
+      std::cerr << chalk::Image::Horizontally(path, partition_path, 4)
+                << "\n\n";
     }
   }
   return std::nullopt;
@@ -237,9 +191,7 @@ int main(int argc, char const* argv[]) {
   }
 
   for (auto const& [p1, p2] : inferred) {
-    for (auto const& line : MergeImages(PathAsImage(p1), PathAsImage(p2))) {
-      std::cerr << line << "\n";
-    }
+    std::cerr << chalk::Image::Horizontally(p1, p2, 4) << "\n";
   }
 
   absl::Format(&std::cerr, R"(

@@ -21,6 +21,7 @@ cc_library(
     srcs = ["dyck_path.cc"],
     deps = [
         ":composition",
+        ":image",
         "//chalk:integer",
         "@com_google_absl//absl/functional:function_ref",
     ],
@@ -33,6 +34,13 @@ cc_test(
         ":dyck_path",
         "@com_google_googletest//:gtest_main",
     ]
+)
+
+cc_library(
+    name = "image",
+    hdrs = ["image.h"],
+    srcs = ["image.cc"],
+    deps = [],
 )
 
 cc_library(

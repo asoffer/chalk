@@ -122,4 +122,27 @@ std::vector<DyckPath> DyckPath::All(size_t n) {
   return results;
 }
 
+Image ChalkVisualize(DyckPath const& path) {
+  std::vector<std::string> result{""};
+  size_t height  = 0;
+  size_t counter = 0;
+  for (DyckPath::Step step : path) {
+    ++counter;
+    bool is_up          = (step == DyckPath::Step::Up);
+    size_t write_height = height - (is_up ? 0 : 1);
+
+    for (size_t i = 0; i < write_height; ++i) {
+      result[i].push_back(((i + height) % 2 == 0) ? '/' : '\\');
+    }
+    result[write_height].push_back(is_up ? '/' : '\\');
+    for (size_t i = write_height + 1; i < result.size(); ++i) {
+      result[i].push_back(' ');
+    }
+    height += (is_up ? 1 : -1);
+    if (height == result.size()) { result.emplace_back(counter, ' '); }
+  }
+  std::reverse(result.begin(), result.end());
+  return Image(std::move(result));
+}
+
 }  // namespace chalk
