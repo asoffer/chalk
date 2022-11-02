@@ -71,8 +71,9 @@ struct BasicPartition : private BasicComposition<PartType> {
   using Base = BasicComposition<PartType>;
 
  public:
-  using value_type     = PartType;
-  using const_iterator = typename Base::const_iterator;
+  using composition_type = Base;
+  using value_type       = PartType;
+  using const_iterator   = typename Base::const_iterator;
 
   // Constructs the unique partition of 0.
   BasicPartition() = default;
@@ -96,6 +97,17 @@ struct BasicPartition : private BasicComposition<PartType> {
     return Rectangle(n, 1);
   }
   static BasicPartition Full(value_type n) { return Rectangle(1, n); }
+
+  // Returns a pair consisting of the partition whose parts are identical to the
+  // parts in `composition` (with multiplicity) and a bool indicating whether
+  // `composition` was already sorted in decreasing order (i.e., the composition
+  // was already a valid partition
+  static std::pair<BasicPartition, bool> From(composition_type composition) {
+    BasicPartition p(std::move(composition).extract());
+    bool sorted = std::is_sorted(p.rbegin(), p.rend());
+    if (not sorted) { std::sort(p.Base::rbegin(), p.Base::rend()); }
+    return std::pair<BasicPartition, bool>(std::move(p), sorted);
+  }
 
   // Returns the number of parts in the partition.
   using Base::parts;

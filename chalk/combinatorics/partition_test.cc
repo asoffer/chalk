@@ -7,7 +7,6 @@ namespace chalk {
 
 using ::testing::ElementsAre;
 
-
 TEST(Partition, InitializerListConstruction) {
   Partition p{5, 2, 2, 1};
   EXPECT_EQ(p.parts(), 4);
@@ -97,6 +96,19 @@ TEST(Partition, CycleTypeCount) {
   EXPECT_EQ(CycleTypeCount(Partition{1, 1, 1, 1, 1}), 1);
 }
 
+TEST(Partition, FromComposition) {
+  Partition p;
+  bool sorted;
+  std::tie(p, sorted) = Partition::From({1});
+  EXPECT_TRUE(sorted);
+  EXPECT_EQ(p, Partition({1}));
+  std::tie(p, sorted) = Partition::From({2, 1});
+  EXPECT_TRUE(sorted);
+  EXPECT_EQ(p, Partition({2, 1}));
+  std::tie(p, sorted) = Partition::From({1, 2});
+  EXPECT_FALSE(sorted);
+  EXPECT_EQ(p, Partition({2, 1}));
+}
 
 TEST(Partition, All) {
   EXPECT_THAT(Partition::All(1), ElementsAre(Partition{1}));

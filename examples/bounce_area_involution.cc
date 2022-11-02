@@ -143,17 +143,17 @@ chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
 }
 
 struct TwoPartPath {
-  explicit TwoPartPath(const chalk::DyckPath& path) : comp_(BouncePath(path)) {
-    assert(comp_.parts() == 2);
-    assert(comp_[0] >= comp_[1]);
+  explicit TwoPartPath(const chalk::DyckPath& path, chalk::Partition partition)
+      : partition_(std::move(partition)) {
+    assert(partition_.parts() == 2);
 
-    // Skip the first `comp_[0]` up steps and the first required down-step.
-    auto iter = path.begin() + comp_[0] + 1;
+    // Skip the first `partition_[0]` up steps and the first required down-step.
+    auto iter = path.begin() + partition_[0] + 1;
 
-    // Ignore the last `comp_[1]` down-steps.
-    auto end_iter = path.end() - comp_[1];
+    // Ignore the last `partition_[1]` down-steps.
+    auto end_iter = path.end() - partition_[1];
 
-    size_t down_steps_before_switch = comp_[1] - 1;
+    size_t down_steps_before_switch = partition_[1] - 1;
     for (; down_steps_before_switch != 0; ++iter) {
       if (*iter == chalk::DyckPath::Step::Down) { --down_steps_before_switch; }
       start_.push_back(*iter);
@@ -178,21 +178,20 @@ struct TwoPartPath {
     return result;
   }
 
-  chalk::Composition comp_;
+  chalk::Partition partition_;
   std::vector<chalk::DyckPath::Step> start_, end_;
 };
 
 std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
-  chalk::Composition comp = chalk::BouncePath(path);
-  if (not std::is_sorted(comp.rbegin(), comp.rend())) { return std::nullopt; }
+  chalk::Composition comp         = chalk::BouncePath(path);
+  auto [partition, was_partition] = chalk::Partition::From(std::move(comp));
+  if (not was_partition) { return std::nullopt; }
 
-  auto partition = chalk::Partition(comp.begin(), comp.end());
-  auto partition_path =
-      DyckPathFromPartition(chalk::Partition(comp.begin(), comp.end()));
+  auto partition_path = DyckPathFromPartition(partition);
   if (path == partition_path) {
     return DyckPathFromPartition(partition.conjugate());
   } else if (partition.parts() == 2) {
-    TwoPartPath two_part_path(path);
+    TwoPartPath two_part_path(path, partition);
 
     std::vector<size_t> gaps = two_part_path.gaps();
     if (gaps.size() == partition[1]) {

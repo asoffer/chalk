@@ -92,6 +92,8 @@ struct BasicComposition {
     return os << ")";
   }
 
+  constexpr representation_type &&extract() && { return std::move(parts_); }
+
  protected:
   explicit BasicComposition(representation_type parts)
       : parts_(std::move(parts)) {}
