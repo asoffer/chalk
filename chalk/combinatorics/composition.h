@@ -16,9 +16,10 @@ namespace chalk {
 template <std::integral PartType>
 struct BasicComposition {
  private:
-  using representation_type = std::conditional_t<
-      std::is_standard_layout_v<PartType> and std::is_trivial_v<PartType>,
-      std::basic_string<PartType>, std::vector<PartType>>;
+  using representation_type =
+      std::conditional_t<std::is_standard_layout_v<PartType> and
+                             std::is_trivial_v<PartType>,
+                         std::basic_string<PartType>, std::vector<PartType>>;
 
  public:
   using value_type     = PartType;
@@ -67,6 +68,8 @@ struct BasicComposition {
                          BasicComposition const &rhs) {
     return not(lhs == rhs);
   }
+
+  void append(value_type v) { parts_.push_back(v); }
 
   template <typename H>
   friend H AbslHashValue(H h, BasicComposition const &p) {

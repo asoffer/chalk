@@ -24,4 +24,13 @@ TEST(Composition, OrderDependent) {
   EXPECT_NE(c, (Composition{1, 2, 5, 2}));
 }
 
+TEST(Composition, Append) {
+  Composition c{2};
+  EXPECT_THAT(c, ElementsAre(2));
+  c.append(3);
+  EXPECT_THAT(c, ElementsAre(2, 3));
+  c.append(2);
+  EXPECT_THAT(c, ElementsAre(2, 3, 2));
+}
+
 }  // namespace chalk

@@ -6,6 +6,8 @@
 #include <ostream>
 #include <vector>
 
+#include "chalk/combinatorics/composition.h"
+
 namespace chalk {
 
 // Represents an Dyck Path, a path from (0, 0) to (2n, 0) consisting of steps in
@@ -153,6 +155,11 @@ size_t Area(DyckPath const &path);
 // Returns the "bounce" statistic for `path` defined in
 // https://www.sciencedirect.com/science/article/pii/S0195669804000320
 size_t Bounce(DyckPath const &path);
+
+// Returns the lengths of each section of the "bounce path" as a `Composition`
+// associated to `path` as defined in
+// https://www.sciencedirect.com/science/article/pii/S0195669804000320
+Composition BouncePath(DyckPath const &path);
 
 }  // namespace chalk
 

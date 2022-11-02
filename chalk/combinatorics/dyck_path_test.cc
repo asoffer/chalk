@@ -120,6 +120,58 @@ TEST(DyckPath, Bounce) {
               2);
 }
 
+TEST(DyckPath, BouncePath) {
+  EXPECT_THAT(BouncePath(DyckPath{}), Composition{});
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
+              Composition{1});
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Up, DyckPath::Step::Down}),
+              (Composition{1, 1}));
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Up, DyckPath::Step::Down}),
+              (Composition{1, 1, 1}));
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              Composition{2});
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              Composition{3});
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Down, DyckPath::Step::Down,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              Composition{4});
+
+  //   /\/\   |
+  //  /\/\/\  |
+  // /\/\/\/\ |
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              (Composition{3, 1}));
+
+  //   /\     |
+  //  /\/\/\  |
+  // /\/\/\/\ |
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Down, DyckPath::Step::Up,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              (Composition{3, 1}));
+
+  //     /\   |
+  //  /\/\/\  |
+  // /\/\/\/\ |
+  EXPECT_THAT(BouncePath(DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
+                                  DyckPath::Step::Down, DyckPath::Step::Up,
+                                  DyckPath::Step::Up, DyckPath::Step::Down,
+                                  DyckPath::Step::Down, DyckPath::Step::Down}),
+              (Composition{2, 2}));
+}
+
 TEST(DyckPath, Lift) {
   EXPECT_EQ(DyckPath::Lift(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
             (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,

@@ -1,7 +1,46 @@
-#include <iostream>
 #include "chalk/combinatorics/dyck_path.h"
 
+#include <iostream>
+
+#include "absl/functional/function_ref.h"
+
 namespace chalk {
+namespace {
+
+void BounceImpl(DyckPath const& path,
+                absl::FunctionRef<void(size_t)> handle_part_size) {
+  size_t height        = 0;
+  size_t bounce_height = 0;
+  bool bouncing_up     = true;
+
+  size_t last_bounce_height = 0;
+  for (auto iter = path.begin(); iter != path.end(); ++iter) {
+    switch (*iter) {
+      case DyckPath::Step::Up: ++height; break;
+      case DyckPath::Step::Down: --height; break;
+    }
+    if (bouncing_up) {
+      if (bounce_height > height) {
+        last_bounce_height = bounce_height;
+        bouncing_up        = false;
+        --bounce_height;
+      } else {
+        ++bounce_height;
+      }
+    } else {
+      if (bounce_height == 0) {
+        bouncing_up = true;
+        ++bounce_height;
+        handle_part_size(last_bounce_height);
+      } else {
+        --bounce_height;
+      }
+    }
+  }
+  handle_part_size(last_bounce_height);
+}
+
+}  // namespace
 
 size_t Area(DyckPath const& path) {
   size_t result  = 0;
@@ -17,35 +56,19 @@ size_t Area(DyckPath const& path) {
 }
 
 size_t Bounce(DyckPath const& path) {
-  size_t result = 0;
+  size_t result     = 0;
+  size_t total_left = path.size() / 2;
+  BounceImpl(path, [&](size_t part) {
+    total_left -= part;
+    result += total_left;
+  });
+  return result;
+}
 
-  size_t height = 0;
-  size_t bounce_height = 0;
-  bool bouncing_up = true;
-  for (auto iter = path.begin(); iter != path.end(); ++iter) {
-    DyckPath::Step step = *iter;
-    switch (step) {
-      case DyckPath::Step::Up: ++height; break;
-      case DyckPath::Step::Down: --height; break;
-    }
-    if (bouncing_up) {
-      if (bounce_height > height) {
-        bouncing_up = false;
-        --bounce_height;
-      } else {
-        ++bounce_height;
-      }
-    } else {
-      if (bounce_height == 0) {
-        bouncing_up = true;
-        ++bounce_height;
-        result += (path.end() - iter) / 2;
-      } else {
-        --bounce_height;
-      }
-    }
-  }
-
+Composition BouncePath(DyckPath const& path) {
+  Composition result;
+  if (path.empty()) { return result; }
+  BounceImpl(path, [&](size_t part) { result.append(part); });
   return result;
 }
 

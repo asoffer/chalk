@@ -20,7 +20,9 @@ cc_library(
     hdrs = ["dyck_path.h"],
     srcs = ["dyck_path.cc"],
     deps = [
+        ":composition",
         "//chalk:integer",
+        "@com_google_absl//absl/functional:function_ref",
     ],
 )
 
