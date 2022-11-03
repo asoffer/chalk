@@ -7,6 +7,7 @@ cc_binary(
         "//chalk/combinatorics:dyck_path",
         "//chalk/combinatorics:image",
         "//chalk/combinatorics:partition",
+        "//chalk/combinatorics:sequence",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:function_ref",

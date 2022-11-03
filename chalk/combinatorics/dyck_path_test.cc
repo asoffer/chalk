@@ -173,14 +173,34 @@ TEST(DyckPath, BouncePath) {
 }
 
 TEST(DyckPath, Lift) {
-  EXPECT_EQ(DyckPath::Lift(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
-            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
-                      DyckPath::Step::Down, DyckPath::Step::Down}));
-  EXPECT_EQ(DyckPath::Lift(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
-                                    DyckPath::Step::Up, DyckPath::Step::Down}),
-            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up,
-                      DyckPath::Step::Down, DyckPath::Step::Up,
-                      DyckPath::Step::Down, DyckPath::Step::Down}));
+  DyckPath p;
+  p = DyckPath{DyckPath::Step::Up, DyckPath::Step::Down};
+  p.lift();
+  EXPECT_EQ(p, DyckPath({DyckPath::Step::Up, DyckPath::Step::Up,
+                         DyckPath::Step::Down, DyckPath::Step::Down}));
+  p = DyckPath{DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
+               DyckPath::Step::Down};
+  p.lift(3);
+  EXPECT_EQ(
+      p, DyckPath({DyckPath::Step::Up, DyckPath::Step::Up, DyckPath::Step::Up,
+                   DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
+                   DyckPath::Step::Down, DyckPath::Step::Down,
+                   DyckPath::Step::Down, DyckPath::Step::Down}));
+}
+
+TEST(DyckPath, Lifted) {
+  EXPECT_EQ(
+      DyckPath::Lifted(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
+      (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up, DyckPath::Step::Down,
+                DyckPath::Step::Down}));
+  EXPECT_EQ(
+      DyckPath::Lifted(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down,
+                                DyckPath::Step::Up, DyckPath::Step::Down},
+                       3),
+      (DyckPath{DyckPath::Step::Up, DyckPath::Step::Up, DyckPath::Step::Up,
+                DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
+                DyckPath::Step::Down, DyckPath::Step::Down,
+                DyckPath::Step::Down, DyckPath::Step::Down}));
 }
 
 TEST(DyckPath, Peak) {
@@ -248,24 +268,20 @@ TEST(DyckPath, Minimal) {
 }
 
 TEST(DyckPath, Concatenate) {
-  EXPECT_EQ(DyckPath::Concatenate(
-                DyckPath{}, DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
-            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
-  EXPECT_EQ(DyckPath::Concatenate(
-                DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}, DyckPath{}),
-            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
-  EXPECT_EQ(
-      DyckPath::Concatenate(DyckPath{DyckPath::Step::Up, DyckPath::Step::Down},
-                            DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}),
-      (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down, DyckPath::Step::Up,
-                DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath{} + DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}),
+            DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}) + DyckPath{},
+            DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}) +
+                DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}),
+            DyckPath({DyckPath::Step::Up, DyckPath::Step::Down,
+                      DyckPath::Step::Up, DyckPath::Step::Down}));
 
-  EXPECT_EQ(DyckPath::Concatenate(
-                DyckPath{}, DyckPath{DyckPath::Step::Up, DyckPath::Step::Down},
-                DyckPath{}),
-            (DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}));
-  EXPECT_EQ(DyckPath::Concatenate(DyckPath::Minimal(1), DyckPath::Minimal(2),
-                                  DyckPath::Minimal(3), DyckPath::Minimal(4)),
+  EXPECT_EQ(DyckPath{} + DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}) +
+                DyckPath{},
+            DyckPath({DyckPath::Step::Up, DyckPath::Step::Down}));
+  EXPECT_EQ(DyckPath::Minimal(1) + DyckPath::Minimal(2) + DyckPath::Minimal(3) +
+                DyckPath::Minimal(4),
             DyckPath::Minimal(10));
 }
 

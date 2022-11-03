@@ -62,3 +62,18 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ]
 )
+
+cc_library(
+    name = "sequence",
+    hdrs = ["sequence.h"],
+    deps = [],
+)
+
+cc_test(
+    name = "sequence_test",
+    srcs = ["sequence_test.cc"],
+    deps = [
+        ":sequence",
+        "@com_google_googletest//:gtest_main",
+    ]
+)

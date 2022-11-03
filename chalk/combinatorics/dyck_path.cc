@@ -72,18 +72,25 @@ Composition BouncePath(DyckPath const& path) {
   return result;
 }
 
-DyckPath DyckPath::ConcatenateImpl(DyckPath lhs, DyckPath const& rhs) {
-  lhs.implementation_.insert(lhs.implementation_.end(),
-                             rhs.implementation_.begin(),
-                             rhs.implementation_.end());
-  return lhs;
+DyckPath& DyckPath::operator+=(DyckPath const& rhs) {
+  implementation_.insert(implementation_.end(), rhs.implementation_.begin(),
+                         rhs.implementation_.end());
+  return *this;
 }
 
-DyckPath DyckPath::Lift(DyckPath const& path) {
-  auto result = path;
-  result.implementation_.insert(result.implementation_.begin(),
-                                static_cast<bool>(Step::Up));
-  result.implementation_.push_back(static_cast<bool>(Step::Down));
+DyckPath& DyckPath::lift(size_t height) {
+  return *this = Lifted(*this, height);
+}
+
+DyckPath DyckPath::Lifted(DyckPath const& path, size_t height) {
+  DyckPath result;
+  result.implementation_.reserve(path.implementation_.size() + 2 * height);
+  result.implementation_.resize(height, static_cast<bool>(Step::Up));
+  result.implementation_.insert(result.implementation_.end(),
+                                path.implementation_.begin(),
+                                path.implementation_.end());
+  result.implementation_.resize(path.implementation_.size() + 2 * height,
+                                static_cast<bool>(Step::Down));
   return result;
 }
 
@@ -110,12 +117,12 @@ std::vector<DyckPath> DyckPath::All(size_t n) {
   if (n == 1) { return {DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}}; }
 
   std::vector<DyckPath> results = All(n - 1);
-  for (auto& path : results) { path = Lift(path); }
+  for (auto& path : results) { path.lift(); }
 
   for (size_t i = 0; i + 1 < n; ++i) {
     for (auto const& lhs : DyckPath::All(i)) {
       for (auto const& rhs : DyckPath::All(n - i - 1)) {
-        results.push_back(DyckPath::Concatenate(DyckPath::Lift(lhs), rhs));
+        results.push_back(DyckPath::Lifted(lhs) + rhs);
       }
     }
   }

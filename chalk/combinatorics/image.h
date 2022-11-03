@@ -22,7 +22,7 @@ struct Image {
     uint16_t width;
   };
 
-  explicit Image(Visualizable auto const& v) : Image(ChalkVisualizable(v)) {}
+  explicit Image(Visualizable auto const& v) : Image(ChalkVisualize(v)) {}
 
   explicit Image(std::vector<std::string> lines)
       : lines_(std::move(lines)),

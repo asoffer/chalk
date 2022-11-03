@@ -10,6 +10,7 @@
 #include "chalk/combinatorics/dyck_path.h"
 #include "chalk/combinatorics/image.h"
 #include "chalk/combinatorics/partition.h"
+#include "chalk/combinatorics/sequence.h"
 
 size_t ValidateInputs(absl::Span<char const* const> input) {
   if (input.size() != 2) {
@@ -92,10 +93,7 @@ Result Map(
 
 chalk::DyckPath DyckPathFromPartition(chalk::Partition const& partition) {
   chalk::DyckPath path;
-  for (auto part : partition) {
-    path = chalk::DyckPath::Concatenate(std::move(path),
-                                        chalk::DyckPath::Peak(part));
-  }
+  for (auto part : partition) { path += chalk::DyckPath::Peak(part); }
   return path;
 }
 
@@ -118,21 +116,12 @@ struct TwoPartPath {
     for (; iter != end_iter; ++iter) { end_.push_back(*iter); }
   }
 
-  std::vector<size_t> gaps() const {
-    std::vector<size_t> result;
-    size_t count = 0;
-    for (auto step : end_) {
-      switch (step) {
-        case chalk::DyckPath::Step::Up: {
-          result.push_back(count);
-          count = 0;
-        } break;
-        case chalk::DyckPath::Step::Down: {
-          ++count;
-        } break;
-      }
-    }
-    return result;
+  std::vector<size_t> start_gaps() const {
+    return chalk::GapsBetween(start_, chalk::DyckPath::Step::Up);
+  }
+
+  std::vector<size_t> end_gaps() const {
+    return chalk::GapsBetween(end_, chalk::DyckPath::Step::Up);
   }
 
   chalk::Partition partition_;
@@ -150,30 +139,52 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
   } else if (partition.parts() == 2) {
     TwoPartPath two_part_path(path, partition);
 
-    std::vector<size_t> gaps = two_part_path.gaps();
-    if (gaps.size() == partition[1]) {
+    std::vector<size_t> start_gaps = two_part_path.start_gaps();
+    std::vector<size_t> end_gaps   = two_part_path.end_gaps();
+
+    if (start_gaps.empty() or end_gaps.empty()) {
+      std::cerr << "Should be able to process:" << chalk::Image(path) << "\n\n";
+      return std::nullopt;
+    }
+
+    // Ignore the last gap (corresponding to the remaining down-steps that are
+    // forced), and read them back to front.
+    start_gaps.pop_back();
+    std::reverse(start_gaps.begin(), start_gaps.end());
+    end_gaps.pop_back();
+    std::reverse(end_gaps.begin(), end_gaps.end());
+
+    if (end_gaps.size() == partition[1]) {
       chalk::DyckPath result;
 
-      size_t total = path.size() / 2;
-      for (auto iter = gaps.rbegin(); iter != gaps.rend(); ++iter) {
-        total -= (*iter + 2);
-        result = chalk::DyckPath::Concatenate(std::move(result),
-                                              chalk::DyckPath::Peak(2),
-                                              chalk::DyckPath::Minimal(*iter));
+      // Place peaks of height 2 with gaps of each given gap size between them.
+      for (size_t gap : end_gaps) {
+        result += chalk::DyckPath::Peak(2);
+        result += chalk::DyckPath::Minimal(gap);
       }
 
-      result =
-          chalk::DyckPath::Concatenate(chalk::DyckPath::Minimal(total), result);
+      // Pad the beginning with "/\.../\" until it is the appropriate size.
+      size_t padding_peaks = (path.size() - result.size()) / 2;
+      result               = chalk::DyckPath::Minimal(padding_peaks) + result;
 
       return result;
-    } else {
-      absl::Format(&std::cerr, "{ ");
-      std::vector<size_t> gaps = two_part_path.gaps();
-      for (auto n : gaps) { std::cerr << n << " "; }
+    } else if (end_gaps.size() + 1 == partition[1]) {
+      if (start_gaps.empty()) { return std::nullopt; }
+      absl::Format(&std::cerr, "Should be able to process: { ");
+      for (auto n : end_gaps) { std::cerr << n << " "; }
+      std::cerr << "} (gaps) { ";
+      for (auto n : start_gaps) { std::cerr << n << " "; }
       std::cerr << "} (gaps)\n\n";
 
-      std::cerr << chalk::Image::Horizontally(path, partition_path, 4)
-                << "\n\n";
+      std::cerr << chalk::Image(path)
+                << "\n////////////////////////////////////////////\n\n";
+    } else {
+      absl::Format(&std::cerr, "Should be able to process: { ");
+      for (auto n : end_gaps) { std::cerr << n << " "; }
+      std::cerr << "} (gaps)\n\n";
+
+      std::cerr << chalk::Image(path)
+                << "\n--------------------------------------------\n\n";
     }
   }
   return std::nullopt;

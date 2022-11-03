@@ -51,17 +51,21 @@ struct DyckPath {
   // and `n` downsteps.
   static std::vector<DyckPath> All(size_t n);
 
-  // Returns the `DyckPath` constructed by concatenating `lhs` and `rhs
+  // Returns the `DyckPath` constructed by concatenating `*this` and `rhs
   // together.
-  static DyckPath Concatenate(DyckPath lhs,
-                              std::same_as<DyckPath> auto const &...rhs) {
-    ((lhs = ConcatenateImpl(std::move(lhs), rhs)), ...);
-    return lhs;
+  DyckPath &operator+=(DyckPath const &rhs);
+
+  friend DyckPath operator+(DyckPath lhs, DyckPath const &rhs) {
+    return lhs += rhs;
   }
+
+  // Prepends the `DyckPath` with `height` up-steps and appends `height`
+  // down-steps.
+  DyckPath &lift(size_t height = 1);
 
   // Returns the `DyckPath` constructed from `p` by first having an upstem, then
   // the path `p`, then a final downstep.
-  static DyckPath Lift(DyckPath const &p);
+  static DyckPath Lifted(DyckPath const &p, size_t height = 1);
 
   bool operator==(DyckPath const &lhs) const = default;
   bool operator!=(DyckPath const &lhs) const = default;
@@ -135,8 +139,6 @@ struct DyckPath {
   friend Image ChalkVisualize(DyckPath const &path);
 
  private:
-  static DyckPath ConcatenateImpl(DyckPath lhs, DyckPath const &rhs);
-
   std::vector<bool> implementation_;
 };
 
