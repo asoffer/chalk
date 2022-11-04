@@ -336,6 +336,20 @@ TEST(DyckPath, Topple) {
                             DyckPath::Step::Up, DyckPath::Step::Up,
                             DyckPath::Step::Up, DyckPath::Step::Down,
                             DyckPath::Step::Down, DyckPath::Step::Down}));
+
+  // Ignores leading /\/\/\... because we cannot dip below the horizontal.
+  path =
+      DyckPath{DyckPath::Step::Up,   DyckPath::Step::Down, DyckPath::Step::Up,
+               DyckPath::Step::Down, DyckPath::Step::Up,   DyckPath::Step::Up,
+               DyckPath::Step::Down, DyckPath::Step::Down, DyckPath::Step::Up,
+               DyckPath::Step::Down};
+
+  path.topple();
+  EXPECT_EQ(path, DyckPath({DyckPath::Step::Up, DyckPath::Step::Down,
+                            DyckPath::Step::Up, DyckPath::Step::Down,
+                            DyckPath::Step::Up, DyckPath::Step::Down,
+                            DyckPath::Step::Up, DyckPath::Step::Up,
+                            DyckPath::Step::Down, DyckPath::Step::Down}));
 }
 
 }  // namespace chalk

@@ -153,11 +153,16 @@ Image ChalkVisualize(DyckPath const& path) {
 }
 
 void DyckPath::topple() {
-  auto peak = std::adjacent_find(implementation_.begin(), implementation_.end(),
-                                 [](bool l, bool r) {
-                                   return l == static_cast<bool>(Step::Up) and
-                                          r == static_cast<bool>(Step::Down);
-                                 });
+  auto start = std::adjacent_find(implementation_.begin(),
+                                  implementation_.end(), [](bool l, bool r) {
+                                    return l == static_cast<bool>(Step::Up) and
+                                           r == static_cast<bool>(Step::Up);
+                                  });
+  auto peak =
+      std::adjacent_find(start, implementation_.end(), [](bool l, bool r) {
+        return l == static_cast<bool>(Step::Up) and
+               r == static_cast<bool>(Step::Down);
+      });
   auto valley =
       std::adjacent_find(peak + 2, implementation_.end(), [](bool l, bool r) {
         return l == static_cast<bool>(Step::Down) and
