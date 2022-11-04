@@ -59,10 +59,6 @@ struct Polynomial : Algebraic {
     return true;
   }
 
-  friend bool operator!=(Polynomial const &lhs, Polynomial const &rhs) {
-    return not(lhs == rhs);
-  }
-
   template <std::same_as<Polynomial> P>
   Polynomial &operator+=(P &&p) {
     using M = base::forward_type<P, monomial_type>;

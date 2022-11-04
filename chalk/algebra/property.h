@@ -37,6 +37,10 @@ requires(internal_property::ValidOperator(Op1) and
          internal_property::ValidOperator(Op2)) struct Distributes {
 };
 
+// Indicates that T acts on the structure via `*'.
+template <typename T>
+struct ScalableBy {};
+
 template <char Op>
 requires(internal_property::ValidOperator(Op)) struct Invertible {
   // TODO
@@ -62,8 +66,18 @@ requires(internal_property::ValidOperator(Op)) struct Group {
 };
 
 template <char Op>
+requires(internal_property::ValidOperator(Op)) struct AbelianGroup;
+
+template <typename T>
+struct ModuleOver {
+  using chalk_implies = void(AbelianGroup<'+'>, ScalableBy<T>);
+};
+
+// TODO: Rather than having to specify ModuleOver<X> for lots of specific X, we
+// should be able to pick one and check implicit conversions.
+template <char Op>
 requires(internal_property::ValidOperator(Op)) struct AbelianGroup {
-  using chalk_implies = void(Group<Op>, Commutative<Op>);
+  using chalk_implies = void(Group<Op>, Commutative<Op>, ModuleOver<int>);
 };
 
 struct Ring {
@@ -150,6 +164,23 @@ struct Algebraic {
       Satisfies<R, HasBinary<'*'>, Commutative<'*'>>) {
     rhs *= std::forward<L>(lhs);
     return rhs;
+  }
+
+  template <typename L, Satisfies<ScalableBy<L>> R>
+  friend R operator*(L &&lhs, R rhs) {
+    rhs *= std::forward<L>(lhs);
+    return rhs;
+  }
+
+  template <typename R, Satisfies<ScalableBy<R>> L>
+  friend R operator*(L lhs, R &&rhs) {
+    lhs *= std::forward<L>(rhs);
+    return lhs;
+  }
+
+  template <typename L, std::convertible_to<L> R>
+  friend bool operator!=(L const &lhs, R const &rhs) {
+    return not(lhs == rhs);
   }
 };
 

@@ -5,6 +5,7 @@ cc_library(
     hdrs = ["character.h"],
     srcs = ["character.cc"],
     deps = [
+        "//chalk/algebra:property",
         "//chalk/combinatorics:partition",
         "@com_google_absl//absl/types:span",
         "@com_google_absl//absl/container:flat_hash_map",

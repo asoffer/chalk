@@ -4,12 +4,15 @@
 #include <cstdint>
 
 #include "absl/container/flat_hash_map.h"
+#include "chalk/algebra/property.h"
 #include "chalk/combinatorics/partition.h"
 
 namespace chalk {
 
 // Represents a character in a symmetric group.
-struct SymmetricGroupCharacter {
+struct SymmetricGroupCharacter : Algebraic {
+  using chalk_properties = void(Ring, Commutative<'*'>);
+
   // Constructs the character corresponding to the irreducible representation of
   // shape `p`.
   static SymmetricGroupCharacter Irreducible(Partition const &p);
@@ -32,18 +35,8 @@ struct SymmetricGroupCharacter {
     return true;
   }
 
-  friend bool operator!=(SymmetricGroupCharacter const &lhs,
-                         SymmetricGroupCharacter const &rhs) {
-    return not(lhs == rhs);
-  }
-
   SymmetricGroupCharacter &operator+=(SymmetricGroupCharacter const &rhs);
   SymmetricGroupCharacter &operator-=(SymmetricGroupCharacter const &rhs);
-
-  friend SymmetricGroupCharacter operator+(SymmetricGroupCharacter lhs,
-                                           SymmetricGroupCharacter const &rhs) {
-    return lhs += rhs;
-  }
 
   friend SymmetricGroupCharacter operator-(SymmetricGroupCharacter lhs,
                                            SymmetricGroupCharacter const &rhs) {
@@ -54,30 +47,14 @@ struct SymmetricGroupCharacter {
 
   SymmetricGroupCharacter &operator*=(int64_t n);
 
-  friend SymmetricGroupCharacter operator*(int64_t n,
-                                           SymmetricGroupCharacter c) {
-    return c *= n;
-  }
-
-  friend SymmetricGroupCharacter operator*(SymmetricGroupCharacter c,
-                                           int64_t n) {
-    return c *= n;
-  }
-
-  friend SymmetricGroupCharacter operator*(SymmetricGroupCharacter const &lhs,
-                                           SymmetricGroupCharacter const &rhs) {
+  SymmetricGroupCharacter &operator*=(SymmetricGroupCharacter const &rhs) {
     SymmetricGroupCharacter result;
-    for (auto const &[partition, coefficient] : lhs.values_) {
+    for (auto const &[partition, coefficient] : values_) {
       auto iter = rhs.values_.find(partition);
       if (iter == rhs.values_.end()) { continue; }
       result.values_.try_emplace(partition, coefficient * iter->second);
     }
-    return result;
-  }
-
-  SymmetricGroupCharacter &operator*=(SymmetricGroupCharacter const &rhs) {
-    *this = *this * rhs;
-    return *this;
+    return *this = std::move(result);
   }
 
   friend double InnerProduct(SymmetricGroupCharacter const &lhs,

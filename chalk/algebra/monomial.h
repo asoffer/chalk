@@ -44,10 +44,6 @@ struct Monomial : Algebraic {
     return true;
   }
 
-  friend bool operator!=(Monomial const &lhs, Monomial const &rhs) {
-    return not(lhs == rhs);
-  }
-
   template <typename H>
   friend H AbslHashValue(H h, Monomial const &m) {
     return H::combine_contiguous(std::move(h), &m.exponents_[0],
