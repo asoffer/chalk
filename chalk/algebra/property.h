@@ -94,6 +94,23 @@ requires(internal_property::ValidOperator(Op)) T const &Unit() {
   return unit;
 }
 
+namespace internal_property {
+
+template <char C>
+struct UnitImpl {
+  template <Satisfies<HasIdentity<C>> T>
+  operator T const &() const {
+    return Unit<C, T>();
+  }
+};
+
+}  // namespace internal_property
+
+template <char Op>
+requires(internal_property::ValidOperator(Op)) auto Unit() {
+  return internal_property::UnitImpl<Op>();
+}
+
 // Returns a bool indicating whether `t` is the unit for `Op` in the structure
 // `T`. By default, does so by comparing `t` to `Unit<Op, T>()`, but this
 // behavior may be overridden with the `ChalkIsUnit` extension.

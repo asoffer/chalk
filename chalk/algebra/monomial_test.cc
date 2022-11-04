@@ -13,7 +13,7 @@ TEST(Monomial, DefaultConstruction) {
     EXPECT_EQ(m.exponent(Variable(1)), 0);
   }
 
-  EXPECT_EQ((Unit<'*', monomial_type>()), m);
+  EXPECT_EQ(Unit<'*'>(), m);
 }
 
 TEST(Monomial, VariableConstruction) {

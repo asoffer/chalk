@@ -27,6 +27,27 @@ cc_test(
 )
 
 cc_library(
+    name = "polynomial",
+    hdrs = ["polynomial.h"],
+    deps = [
+        ":monomial",
+        ":property",
+        "//chalk/base:type_traits",
+        "//chalk/base:lazy",
+        "@com_google_absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_test(
+    name = "polynomial_test",
+    srcs = ["polynomial_test.cc"],
+    deps = [
+        ":polynomial",
+        "@com_google_googletest//:gtest_main",
+    ]
+)
+
+cc_library(
     name = "variable",
     hdrs = ["variable.h"],
     deps = [],
