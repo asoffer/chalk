@@ -114,7 +114,7 @@ DyckPath DyckPath::Minimal(size_t peaks) {
 
 std::vector<DyckPath> DyckPath::All(size_t n) {
   if (n == 0) { return {DyckPath{}}; }
-  if (n == 1) { return {DyckPath{DyckPath::Step::Up, DyckPath::Step::Down}}; }
+  if (n == 1) { return {DyckPath{Step::Up, Step::Down}}; }
 
   std::vector<DyckPath> results = All(n - 1);
   for (auto& path : results) { path.lift(); }
@@ -150,6 +150,27 @@ Image ChalkVisualize(DyckPath const& path) {
   }
   std::reverse(result.begin(), result.end());
   return Image(std::move(result));
+}
+
+void DyckPath::topple() {
+  auto peak = std::adjacent_find(implementation_.begin(), implementation_.end(),
+                                 [](bool l, bool r) {
+                                   return l == static_cast<bool>(Step::Up) and
+                                          r == static_cast<bool>(Step::Down);
+                                 });
+  auto valley =
+      std::adjacent_find(peak + 2, implementation_.end(), [](bool l, bool r) {
+        return l == static_cast<bool>(Step::Down) and
+               r == static_cast<bool>(Step::Up);
+      });
+  assert(valley != implementation_.end());
+  assert((valley + 1) != implementation_.end());
+
+  *peak       = static_cast<bool>(Step::Down);
+  *(peak + 1) = static_cast<bool>(Step::Up);
+
+  *valley       = static_cast<bool>(Step::Up);
+  *(valley + 1) = static_cast<bool>(Step::Down);
 }
 
 }  // namespace chalk

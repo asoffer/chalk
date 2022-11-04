@@ -314,4 +314,13 @@ TEST(DyckPath, All) {
                                     DyckPath::Step::Up, DyckPath::Step::Down}));
 }
 
+TEST(DyckPath, Topple) {
+  DyckPath path{DyckPath::Step::Up,   DyckPath::Step::Up, DyckPath::Step::Down,
+                DyckPath::Step::Down, DyckPath::Step::Up, DyckPath::Step::Down};
+  path.topple();
+  EXPECT_EQ(path, DyckPath({DyckPath::Step::Up, DyckPath::Step::Down,
+                            DyckPath::Step::Up, DyckPath::Step::Up,
+                            DyckPath::Step::Down, DyckPath::Step::Down}));
+}
+
 }  // namespace chalk

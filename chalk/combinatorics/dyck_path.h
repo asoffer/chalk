@@ -33,6 +33,9 @@ struct DyckPath {
   // Returns a `DyckPath` consisting of `peaks` up/down pairs.
   static DyckPath Minimal(size_t peaks);
 
+  // Moves the first peak into the first valley following that peak.
+  void topple();
+
   // Returns the length of the path in terms of the number of steps taken
   // (always an even number).
   constexpr size_t size() const { return implementation_.size(); }
