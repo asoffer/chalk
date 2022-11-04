@@ -5,55 +5,17 @@
 #include <type_traits>
 #include <utility>
 
+#include "chalk/algebra/internal/property.h"
+
 namespace chalk {
-namespace internal_property {
-
-constexpr bool ValidOperator(char c) { return c == '+' or c == '*'; }
-
-template <typename... Processed>
-auto TraverseProperties(void (*)(), void (*)(Processed...)) {
-  return static_cast<void (*)(Processed...)>(nullptr);
-}
-
-template <typename P, typename... Ps, typename... Processed>
-auto TraverseProperties(void (*)(P, Ps...), void (*)(Processed...)) {
-  if constexpr ((std::is_same_v<P, Processed> or ...)) {
-    return TraverseProperties(static_cast<void (*)(Ps...)>(nullptr),
-                              static_cast<void (*)(Processed...)>(nullptr));
-  } else if constexpr (requires { typename P::chalk_implies; }) {
-    return TraverseProperties(
-        static_cast<typename P::chalk_implies *>(nullptr),
-        TraverseProperties(static_cast<void (*)(Ps...)>(nullptr),
-                           static_cast<void (*)(P, Processed...)>(nullptr)));
-  } else {
-    return TraverseProperties(static_cast<void (*)(Ps...)>(nullptr),
-                              static_cast<void (*)(P, Processed...)>(nullptr));
-  }
-}
-
-template <typename T>
-using PropertiesOf = decltype(TraverseProperties(
-    static_cast<typename T::chalk_properties *>(nullptr),
-    static_cast<void (*)()>(nullptr)));
-
-template <typename, typename>
-struct Contains;
-template <typename... Ps, typename P>
-struct Contains<void (*)(Ps...), P> {
-  static constexpr bool value = (std::is_same_v<P, Ps> or ...);
-};
-
-}  // namespace internal_property
 
 // Matches any structure whose properties (immediate and implied) match all of
 // the `RequiredProperties`.
 template <typename T, typename... RequiredProperties>
-concept PropertiesInclude =
+concept Satisfies =
     (internal_property::Contains<internal_property::PropertiesOf<T>,
                                  RequiredProperties>::value and
      ...);
-
-// Properties
 
 // Indicates that the structure has a binary operator represented by `Op`.
 template <char Op>
@@ -61,10 +23,23 @@ requires(internal_property::ValidOperator(Op)) struct HasBinary {
 };
 
 // Indicates that the structure has a commutative binary operator represented by
-// `Op`.
+// `Op`, so that:
+//   `x Op y == y Op x`
 template <char Op>
 requires(internal_property::ValidOperator(Op)) struct Commutative {
   using chalk_implies = void(HasBinary<Op>);
+};
+
+// Indicates that `Op1` distributes over `Op2`, so that:
+//   `x Op1 (y Op2 z) == (x Op1 y) Op2 (x Op1 z)`
+template <char Op1, char Op2>
+requires(internal_property::ValidOperator(Op1) and
+         internal_property::ValidOperator(Op2)) struct Distributes {
+};
+
+template <char Op>
+requires(internal_property::ValidOperator(Op)) struct Invertible {
+  // TODO
 };
 
 // Indicates that the structure has an identity element for the binary operator
@@ -77,16 +52,63 @@ requires(internal_property::ValidOperator(Op)) struct HasIdentity {
 // Indicates that the structure is a monoid over the binary operator represented
 // by `Op`.
 template <char Op>
-requires(internal_property::ValidOperator(Op)) struct MonoidOver {
-  using chalk_implies = void(HasBinary<'*'>, HasIdentity<'*'>);
+requires(internal_property::ValidOperator(Op)) struct Monoid {
+  using chalk_implies = void(HasBinary<Op>, HasIdentity<Op>);
 };
+
+template <char Op>
+requires(internal_property::ValidOperator(Op)) struct Group {
+  using chalk_implies = void(Monoid<Op>, Invertible<Op>);
+};
+
+template <char Op>
+requires(internal_property::ValidOperator(Op)) struct AbelianGroup {
+  using chalk_implies = void(Group<Op>, Commutative<Op>);
+};
+
+struct Ring {
+  using chalk_implies = void(AbelianGroup<'+'>, Monoid<'*'>,
+                             Distributes<'*', '+'>);
+};
+
+// Returns a constant reference to a a unit for `Op` over the structure `T`
+// which has static storage duration.
+template <char Op, Satisfies<HasIdentity<Op>> T>
+requires(internal_property::ValidOperator(Op)) T const &Unit() {
+  // TODO: Turn off destructor.
+  static T unit = [] {
+    if constexpr (Op == '+') {
+      if constexpr (requires { T::Zero(); }) {
+        return T::Zero();
+      } else if constexpr (requires { T(0); }) {
+        return T(0);
+      }
+    } else {
+      if constexpr (requires { T::One(); }) {
+        return T::One();
+      } else if constexpr (requires { T(1); }) {
+        return T(1);
+      }
+    }
+  }();
+  return unit;
+}
+
+// Returns a bool indicating whether `t` is the unit for `Op` in the structure
+// `T`. By default, does so by comparing `t` to `Unit<Op, T>()`, but this
+// behavior may be overridden with the `ChalkIsUnit` extension.
+//
+// TODO: Design and implement `ChalkIsUnit`.
+template <char Op, int &..., typename T>
+requires(Satisfies<T, HasIdentity<Op>>) bool IsUnit(T const &t) {
+  return t == Unit<Op, T>();
+}
 
 // An empty base class for that algebraic structures must inherit from in order
 // to have access to generated operators.
 struct Algebraic {
   template <typename L, std::convertible_to<L> R>
-  friend L operator+(L lhs,
-                     R &&rhs) requires(PropertiesInclude<L, HasBinary<'+'>>) {
+  friend L operator+(L lhs, R &&rhs) requires(Satisfies<L, HasBinary<'+'>>) {
     lhs += std::forward<R>(rhs);
     return lhs;
   }
@@ -94,14 +116,13 @@ struct Algebraic {
   template <typename R, std::convertible_to<R> L>
   friend R operator+(L &&lhs, R rhs) requires(
       not std::is_same_v<std::decay_t<L>, R> and
-      PropertiesInclude<R, HasBinary<'+'>, Commutative<'+'>>) {
+      Satisfies<R, HasBinary<'+'>, Commutative<'+'>>) {
     rhs += std::forward<L>(lhs);
     return rhs;
   }
 
   template <typename L, std::convertible_to<L> R>
-  friend L operator*(L lhs,
-                     R &&rhs) requires(PropertiesInclude<L, HasBinary<'*'>>) {
+  friend L operator*(L lhs, R &&rhs) requires(Satisfies<L, HasBinary<'*'>>) {
     lhs *= std::forward<R>(rhs);
     return lhs;
   }
@@ -109,11 +130,22 @@ struct Algebraic {
   template <typename R, std::convertible_to<R> L>
   friend R operator*(L &&lhs, R rhs) requires(
       not std::is_same_v<std::decay_t<L>, R> and
-      PropertiesInclude<R, HasBinary<'*'>, Commutative<'*'>>) {
+      Satisfies<R, HasBinary<'*'>, Commutative<'*'>>) {
     rhs *= std::forward<L>(lhs);
     return rhs;
   }
 };
+
+namespace internal_property {
+
+// Specialization for builtin types so they can be used without wrappers.
+template <typename T>
+requires(std::is_arithmetic_v<T>) struct PropertiesOfImpl<T> {
+  using type = decltype(TraverseProperties(static_cast<void (*)(Ring)>(nullptr),
+                                           static_cast<void (*)()>(nullptr)));
+};
+
+}  // namespace internal_property
 
 }  // namespace chalk
 
