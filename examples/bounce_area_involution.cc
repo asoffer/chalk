@@ -108,24 +108,26 @@ struct TwoPartPath {
     // Ignore the last `partition_[1]` down-steps.
     auto end_iter = path.end() - partition_[1];
 
-    size_t down_steps_before_switch = partition_[1] - 1;
-    for (; down_steps_before_switch != 0; ++iter) {
-      if (*iter == chalk::DyckPath::Step::Down) { --down_steps_before_switch; }
-      start_.push_back(*iter);
-    }
-    for (; iter != end_iter; ++iter) { end_.push_back(*iter); }
+    steps_.assign(iter, end_iter);
   }
 
-  std::vector<size_t> start_gaps() const {
-    return chalk::GapsBetween(start_, chalk::DyckPath::Step::Up);
+  // Returns the sequence of gaps between up steps in the starting part of the
+  // two-part path.
+  absl::Span<chalk::DyckPath::Step const> first_steps() const {
+    return absl::Span(steps_.data(), partition_[1] - 1);
   }
 
-  std::vector<size_t> end_gaps() const {
-    return chalk::GapsBetween(end_, chalk::DyckPath::Step::Up);
+  // Returns the sequence of gaps between up steps in the ending part of the
+  // two-part path.
+  std::vector<size_t> remaining_gaps() const {
+    return chalk::GapsBetween(absl::Span(steps_.data() + (partition_[1] - 1),
+                                         steps_.size() - (partition_[1] - 1)),
+                              chalk::DyckPath::Step::Up);
   }
 
+ private:
   chalk::Partition partition_;
-  std::vector<chalk::DyckPath::Step> start_, end_;
+  std::vector<chalk::DyckPath::Step> steps_;
 };
 
 std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
@@ -139,28 +141,32 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
   } else if (partition.parts() == 2) {
     TwoPartPath two_part_path(path, partition);
 
-    std::vector<size_t> start_gaps = two_part_path.start_gaps();
-    std::vector<size_t> end_gaps   = two_part_path.end_gaps();
+    auto first_steps = two_part_path.first_steps();
+    std::vector<size_t> start_gaps =
+        chalk::GapsBetween(first_steps, chalk::DyckPath::Step::Up);
 
-    if (start_gaps.empty() or end_gaps.empty()) {
-      std::cerr << "Should be able to process:" << chalk::Image(path) << "\n\n";
-      return std::nullopt;
-    }
-
+    std::vector<size_t> end_gaps = two_part_path.remaining_gaps();
     // Ignore the last gap (corresponding to the remaining down-steps that are
     // forced), and read them back to front.
-    start_gaps.pop_back();
-    std::reverse(start_gaps.begin(), start_gaps.end());
     end_gaps.pop_back();
     std::reverse(end_gaps.begin(), end_gaps.end());
 
-    if (end_gaps.size() == partition[1]) {
+    if (start_gaps.size() <= 2) {
       chalk::DyckPath result;
 
-      // Place peaks of height 2 with gaps of each given gap size between them.
+      std::vector<chalk::DyckPath> pieces(
+          end_gaps.size(),
+          chalk::DyckPath::Lifted(chalk::DyckPath::Minimal(1)));
+      if (start_gaps.size() == 2) {
+        pieces[start_gaps[0]] =
+            chalk::DyckPath::Lifted(chalk::DyckPath::Minimal(2));
+      }
+
+      auto iter = pieces.begin();
       for (size_t gap : end_gaps) {
-        result += chalk::DyckPath::Peak(2);
+        result += *iter;
         result += chalk::DyckPath::Minimal(gap);
+        ++iter;
       }
 
       // Pad the beginning with "/\.../\" until it is the appropriate size.
@@ -168,16 +174,7 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
       result               = chalk::DyckPath::Minimal(padding_peaks) + result;
 
       return result;
-    } else if (end_gaps.size() + 1 == partition[1]) {
-      if (start_gaps.empty()) { return std::nullopt; }
-      absl::Format(&std::cerr, "Should be able to process: { ");
-      for (auto n : end_gaps) { std::cerr << n << " "; }
-      std::cerr << "} (gaps) { ";
-      for (auto n : start_gaps) { std::cerr << n << " "; }
-      std::cerr << "} (gaps)\n\n";
 
-      std::cerr << chalk::Image(path)
-                << "\n////////////////////////////////////////////\n\n";
     } else {
       absl::Format(&std::cerr, "Should be able to process: { ");
       for (auto n : end_gaps) { std::cerr << n << " "; }
