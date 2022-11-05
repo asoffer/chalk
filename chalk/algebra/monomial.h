@@ -1,8 +1,8 @@
 #ifndef CHALK_ALGEBRA_MONOMIAL_H
 #define CHALK_ALGEBRA_MONOMIAL_H
 
-#include <array>
 #include <cstddef>
+#include <tuple>
 
 #include "chalk/algebra/property.h"
 #include "chalk/algebra/variable.h"
@@ -16,11 +16,8 @@ struct Monomial : Algebraic {
   using exponent_type                    = E;
   static constexpr size_t variable_count = N;
 
-  static std::array<Variable, variable_count> Variables() {
-    return []<size_t... Ns>(std::index_sequence<Ns...>) {
-      return std::array{Variable(Ns)...};
-    }
-    (std::make_index_sequence<variable_count>());
+  static auto Variables() {
+    return internal_variable::VariableSet<variable_count>();
   }
 
   // Constructs the multiplicative unit for the monomial.
@@ -30,11 +27,16 @@ struct Monomial : Algebraic {
   static constexpr Monomial One() { return Monomial(); }
 
   // Constructs a monomial consisting of the single variable `v`.
-  constexpr Monomial(Variable v) : exponents_{} { exponents_[v.index()] = 1; }
+  template <size_t M>
+  constexpr Monomial(Variable<M>) requires(M < variable_count) : exponents_{} {
+    exponents_[M] = 1;
+  }
 
   // Returns the exponent of the variable `v` in the monomial.
-  constexpr exponent_type const &exponent(Variable v) const {
-    return exponents_[v.index()];
+  template <size_t M>
+  constexpr exponent_type const &exponent(Variable<M>) const
+      requires(M < variable_count) {
+    return exponents_[M];
   }
 
   friend bool operator==(Monomial const &lhs, Monomial const &rhs) {
@@ -57,8 +59,9 @@ struct Monomial : Algebraic {
     return *this;
   }
 
-  Monomial &operator*=(Variable v) {
-    ++exponents_[v.index()];
+  template <size_t M>
+  Monomial &operator*=(Variable<M>) requires(M < variable_count) {
+    ++exponents_[M];
     return *this;
   }
 
