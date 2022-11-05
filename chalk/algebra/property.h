@@ -182,6 +182,12 @@ struct Algebraic {
   friend bool operator!=(L const &lhs, R const &rhs) {
     return not(lhs == rhs);
   }
+
+  template <typename R, std::convertible_to<R> L>
+  friend bool operator!=(L const &lhs,
+                         R const &rhs) requires(not std::convertible_to<R, L>) {
+    return not(lhs == rhs);
+  }
 };
 
 namespace internal_property {

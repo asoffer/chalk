@@ -76,5 +76,17 @@ TEST(Monomial, Equality) {
   EXPECT_TRUE(m1 != m3);
 }
 
+TEST(Monomial, Conversion) {
+  auto [x] = Monomial<1>::Variables();
+  auto [x2, y, z] = Monomial<3>::Variables();
+  EXPECT_EQ(x, x2);
+
+  Monomial<1> m1 = x;
+  Monomial<3> m3 = x;
+  EXPECT_EQ(m1, m3);
+  EXPECT_EQ(m1, x);
+  EXPECT_EQ(m3, x);
+}
+
 }  // namespace
 }  // namespace chalk

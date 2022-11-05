@@ -1,6 +1,7 @@
 #ifndef CHALK_ALGEBRA_MONOMIAL_H
 #define CHALK_ALGEBRA_MONOMIAL_H
 
+#include <concepts>
 #include <cstddef>
 #include <tuple>
 
@@ -32,18 +33,17 @@ struct Monomial : Algebraic {
     exponents_[M] = 1;
   }
 
+  template <size_t M>
+  constexpr Monomial(Monomial<M> const &m) requires(M < variable_count)
+      : exponents_{} {
+    for (size_t i = 0; i < M; ++i) { exponents_[i] = m.exponents_[i]; }
+  }
+
   // Returns the exponent of the variable `v` in the monomial.
   template <size_t M>
   constexpr exponent_type const &exponent(Variable<M>) const
       requires(M < variable_count) {
     return exponents_[M];
-  }
-
-  friend bool operator==(Monomial const &lhs, Monomial const &rhs) {
-    for (size_t i = 0; i < variable_count; ++i) {
-      if (lhs.exponents_[i] != rhs.exponents_[i]) { return false; }
-    }
-    return true;
   }
 
   template <typename H>
@@ -65,7 +65,22 @@ struct Monomial : Algebraic {
     return *this;
   }
 
+  friend bool operator==(std::convertible_to<Monomial> auto const &lhs,
+                         std::convertible_to<Monomial> auto const &rhs) {
+    // TODO: Implement this more efficiently when you know that one side is a
+    // smaller monomial, or a specific variable.
+    Monomial l(lhs);
+    Monomial r(rhs);
+    for (size_t i = 0; i < variable_count; ++i) {
+      if (l.exponents_[i] != r.exponents_[i]) { return false; }
+    }
+    return true;
+  }
+
  private:
+  template <size_t, typename>
+  friend struct Monomial;
+
   exponent_type exponents_[variable_count];
 };
 

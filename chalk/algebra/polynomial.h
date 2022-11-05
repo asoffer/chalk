@@ -33,8 +33,33 @@ struct Polynomial : Algebraic {
   }
 
   template <std::convertible_to<coefficient_ring> R>
-  Polynomial(R &&t) {
-    coefficients_.try_emplace(Unit<'*', monomial_type>(), std::forward<R>(t));
+  Polynomial(R &&t) requires(not std::convertible_to<R, monomial_type>) {
+    auto [iter, inserted] = coefficients_.try_emplace(
+        Unit<'*', monomial_type>(), std::forward<R>(t));
+    // TODO: Check this upfront and avoid the insertion.
+    if (IsUnit<'+'>(iter->second)) { coefficients_.erase(iter); }
+  }
+
+  // TODO: Support conversion from any ring `R` that embeds into
+  // `coefficient_ring`.
+  template <size_t M>
+  constexpr Polynomial(Polynomial<coefficient_ring, M,
+                                  typename monomial_type::exponent_type> const
+                           &m) requires(M < monomial_type::variable_count) {
+    for (auto const &[monomial, coef] : m.coefficients_) {
+      coefficients_.try_emplace(monomial, coef);
+    }
+  }
+
+  // TODO: Support conversion from any ring `R` that embeds into
+  // `coefficient_ring`.
+  template <size_t M>
+  constexpr Polynomial(
+      Polynomial<coefficient_ring, M, typename monomial_type::exponent_type>
+          &&m) requires(M < monomial_type::variable_count) {
+    for (auto &[monomial, coef] : m.coefficients_) {
+      coefficients_.try_emplace(monomial, std::move(coef));
+    }
   }
 
   // Returns an array consisting of all variables usable in this Polynomial
@@ -49,12 +74,17 @@ struct Polynomial : Algebraic {
     return Unit<'+', coefficient_ring>();
   }
 
-  friend bool operator==(Polynomial const &lhs, Polynomial const &rhs) {
-    if (lhs.coefficients_.size() != rhs.coefficients_.size()) { return false; }
-    for (auto const &[m, r] : lhs.coefficients_) {
-      auto iter = rhs.coefficients_.find(m);
-      if (iter == rhs.coefficients_.end()) { return false; }
-      if (iter->second != r) { return false; }
+  friend bool operator==(std::convertible_to<Polynomial> auto const &lhs,
+                         std::convertible_to<Polynomial> auto const &rhs) {
+    Polynomial l(lhs);
+    Polynomial r(rhs);
+    std::cerr << l.coefficients_.size() << " " << r.coefficients_.size()
+              << "\n";
+    if (l.coefficients_.size() != r.coefficients_.size()) { return false; }
+    for (auto const &[m, coef] : l.coefficients_) {
+      auto iter = r.coefficients_.find(m);
+      if (iter == r.coefficients_.end()) { return false; }
+      if (iter->second != coef) { return false; }
     }
     return true;
   }
@@ -184,6 +214,9 @@ struct Polynomial : Algebraic {
   }
 
  private:
+  template <Satisfies<Ring>, size_t, typename>
+  friend struct Polynomial;
+
   absl::flat_hash_map<monomial_type, coefficient_ring> coefficients_;
 };
 

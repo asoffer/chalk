@@ -167,6 +167,18 @@ TEST(Polynomial, CoefficientManiuplation) {
   EXPECT_EQ(p.coefficient(Unit<'*'>()), 0);
 }
 
+TEST(Polynomial, Conversion) {
+  auto [x, y, z]            = Polynomial<int64_t, 3>::Variables();
+  Polynomial<int64_t, 1> p1 = x;
+  Polynomial<int64_t, 3> p3 = x;
+  EXPECT_EQ(p1, p3);
+  EXPECT_EQ(p1, x);
+  EXPECT_EQ(p3, x);
+  p1 *= x;
+  p3 = p1;
+  EXPECT_EQ(p3, (Polynomial<int64_t, 3>(1) * x * x));
+}
+
 // TODO: A lot more tests.
 
 }  // namespace
