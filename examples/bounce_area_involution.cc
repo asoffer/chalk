@@ -175,6 +175,25 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
 
       return result;
 
+    } else if (start_gaps.size() == 3) {
+      if (partition[1] != 3) { return std::nullopt; }
+
+      chalk::DyckPath result;
+      if (partition[0] % 2 == 0) {
+        result = chalk::DyckPath::Lifted(chalk::DyckPath::Minimal(3)) +
+                 chalk::DyckPath::Minimal(partition[0] / 2 - 1);
+      } else {
+        result = chalk::DyckPath::Peak(3) +
+                 chalk::DyckPath::Minimal((partition[0] - 1) / 2);
+      }
+      for (size_t i = 0; i < partition[0] - 1 - end_gaps[0]; ++i) {
+        result.topple();
+      }
+
+      // Pad the beginning with "/\.../\" until it is the appropriate size.
+      size_t padding_peaks = (path.size() - result.size()) / 2;
+      result               = chalk::DyckPath::Minimal(padding_peaks) + result;
+      return result;
     } else {
       absl::Format(&std::cerr, "Should be able to process: { ");
       for (auto n : end_gaps) { std::cerr << n << " "; }
@@ -197,6 +216,8 @@ int main(int argc, char const* argv[]) {
   for (auto const& [stats, paths] : unclassified) {
     unclassified_count += paths.size();
   }
+
+  std::cerr << "============================================\n\n";
 
   for (auto const& [p1, p2] : inferred) {
     std::cerr << chalk::Image::Horizontally(p1, p2, 4) << "\n";
