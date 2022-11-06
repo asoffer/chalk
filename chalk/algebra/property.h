@@ -134,6 +134,16 @@ template <char Op, int &..., typename T>
 requires(Satisfies<T, HasIdentity<Op>>) bool IsUnit(T const &t) {
   return t == Unit<Op, T>();
 }
+// We do not support structures for which the multiplicative and additive units
+// are the same.
+template <char Op>
+constexpr bool IsUnit(internal_property::UnitImpl<'+'> const &) {
+  return Op == '+';
+}
+template <char Op>
+constexpr bool IsUnit(internal_property::UnitImpl<'*'> const &) {
+  return Op == '*';
+}
 
 // An empty base class for that algebraic structures must inherit from in order
 // to have access to generated operators.
@@ -153,7 +163,15 @@ struct Algebraic {
   }
 
   template <typename L, std::convertible_to<L> R>
-  friend L operator*(L lhs, R &&rhs) requires(Satisfies<L, HasBinary<'*'>>) {
+  friend L operator-(L lhs, R &&rhs) requires(Satisfies<L, Invertible<'+'>>) {
+    lhs -= std::forward<R>(rhs);
+    return lhs;
+  }
+
+  template <typename L, typename R>
+  friend L operator*(L lhs, R &&rhs) requires((std::convertible_to<R, L> and
+                                               Satisfies<L, HasBinary<'*'>>) or
+                                              Satisfies<L, ScalableBy<R>>) {
     lhs *= std::forward<R>(rhs);
     return lhs;
   }
@@ -161,21 +179,11 @@ struct Algebraic {
   template <typename R, std::convertible_to<R> L>
   friend R operator*(L &&lhs, R rhs) requires(
       not std::is_same_v<std::decay_t<L>, R> and
-      Satisfies<R, HasBinary<'*'>, Commutative<'*'>>) {
+      ((std::convertible_to<L, R> and
+        Satisfies<R, HasBinary<'*'>, Commutative<'*'>>) or
+       Satisfies<R, ScalableBy<L>>)) {
     rhs *= std::forward<L>(lhs);
     return rhs;
-  }
-
-  template <typename L, Satisfies<ScalableBy<L>> R>
-  friend R operator*(L &&lhs, R rhs) {
-    rhs *= std::forward<L>(lhs);
-    return rhs;
-  }
-
-  template <typename R, Satisfies<ScalableBy<R>> L>
-  friend R operator*(L lhs, R &&rhs) {
-    lhs *= std::forward<L>(rhs);
-    return lhs;
   }
 
   template <typename L, std::convertible_to<L> R>
@@ -187,6 +195,13 @@ struct Algebraic {
   friend bool operator!=(L const &lhs,
                          R const &rhs) requires(not std::convertible_to<R, L>) {
     return not(lhs == rhs);
+  }
+
+ protected:
+  // Never called directly (due to the templates).
+  friend bool operator==(std::same_as<Algebraic> auto const &,
+                         std::same_as<Algebraic> auto const &) {
+    return true;
   }
 };
 

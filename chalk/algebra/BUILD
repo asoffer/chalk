@@ -9,6 +9,29 @@ cc_library(
 )
 
 cc_library(
+    name = "dense_polynomial",
+    hdrs = ["dense_polynomial.h"],
+    deps = [
+        ":monomial",
+        ":property",
+        "//chalk/base:type_traits",
+        "//chalk/base:lazy",
+        "@com_google_absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_test(
+    name = "dense_polynomial_test",
+    srcs = ["dense_polynomial_test.cc"],
+    deps = [
+        ":dense_polynomial",
+        "@com_google_googletest//:gtest_main",
+    ]
+)
+
+
+
+cc_library(
     name = "monomial",
     hdrs = ["monomial.h"],
     deps = [
