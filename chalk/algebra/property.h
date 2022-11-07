@@ -168,6 +168,14 @@ struct Algebraic {
     return lhs;
   }
 
+  template <typename R, std::convertible_to<std::decay_t<R>> L>
+  friend std::decay_t<R> operator-(L &&lhs, R &&rhs) requires(
+      Satisfies<std::decay_t<R>, Invertible<'+'>> and
+      not std::convertible_to<std::decay_t<R>, std::decay_t<L>>) {
+    // TODO Use negation instead of subtraction from  a unit.
+    return std::decay_t<R>(std::forward<L>(lhs)) - std::forward<R>(rhs);
+  }
+
   template <typename L, typename R>
   friend L operator*(L lhs, R &&rhs) requires((std::convertible_to<R, L> and
                                                Satisfies<L, HasBinary<'*'>>) or
@@ -179,8 +187,7 @@ struct Algebraic {
   template <typename R, std::convertible_to<R> L>
   friend R operator*(L &&lhs, R rhs) requires(
       not std::is_same_v<std::decay_t<L>, R> and
-      ((std::convertible_to<L, R> and
-        Satisfies<R, HasBinary<'*'>, Commutative<'*'>>) or
+      (Satisfies<R, HasBinary<'*'>, Commutative<'*'>> or
        Satisfies<R, ScalableBy<L>>)) {
     rhs *= std::forward<L>(lhs);
     return rhs;
@@ -210,8 +217,9 @@ namespace internal_property {
 // Specialization for builtin types so they can be used without wrappers.
 template <typename T>
 requires(std::is_arithmetic_v<T>) struct PropertiesOfImpl<T> {
-  using type = decltype(TraverseProperties(static_cast<void (*)(Ring)>(nullptr),
-                                           static_cast<void (*)()>(nullptr)));
+  using type = decltype(TraverseProperties(
+      static_cast<void (*)(Ring, Commutative<'*'>)>(nullptr),
+      static_cast<void (*)()>(nullptr)));
 };
 
 }  // namespace internal_property

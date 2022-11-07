@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <cstddef>
+#include <ostream>
 #include <tuple>
 
 #include "chalk/algebra/property.h"
@@ -75,6 +76,25 @@ struct Monomial : Algebraic {
       if (l.exponents_[i] != r.exponents_[i]) { return false; }
     }
     return true;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, Monomial const &m) {
+    bool unit = true;
+    for (size_t i = 0; i < variable_count; ++i) {
+      switch (m.exponents_[i]) {
+        case 0: break;
+        case 1:
+          os << 'v' << i;
+          unit = false;
+          break;
+        default:
+          os << 'v' << i << '^' << m.exponents_[i];
+          unit = false;
+          break;
+      }
+    }
+    if (unit) os << 'e';
+    return os;
   }
 
  private:
