@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -12,18 +16,17 @@
 #include "chalk/combinatorics/partition.h"
 #include "chalk/combinatorics/sequence.h"
 
-size_t ValidateInputs(absl::Span<char const* const> input) {
-  if (input.size() != 2) {
-    std::cerr << "Must have exactly one input.\n";
-    std::abort();
-  }
+[[noreturn]] void Abort(std::string_view message) {
+  std::cerr << message << "\n";
+  std::abort();
+}
 
-  size_t n = std::atoi(input[1]);
+size_t ValidateInteger(char const* cstr) {
+  size_t n = std::atoi(cstr);
   if (n == 0) {
-    std::cerr << "Input must be a positive integer.\n";
-    std::abort();
+    Abort(absl::StrCat("Input must be a positive integer, but you provided ",
+                       cstr, "\n"));
   }
-
   return n;
 }
 
@@ -102,7 +105,8 @@ struct TwoPartPath {
       : partition_(std::move(partition)) {
     assert(partition_.parts() == 2);
 
-    // Skip the first `partition_[0]` up steps and the first required down-step.
+    // Skip the first `partition_[0]` up steps and the first required
+    // down-step.
     auto iter = path.begin() + partition_[0] + 1;
 
     // Ignore the last `partition_[1]` down-steps.
@@ -206,9 +210,51 @@ std::optional<chalk::DyckPath> Conjecture(chalk::DyckPath const& path) {
   return std::nullopt;
 }
 
-int main(int argc, char const* argv[]) {
-  size_t n = ValidateInputs(absl::MakeConstSpan(argv, argc));
+auto Classify(size_t n) {
+  absl::flat_hash_map<std::pair<size_t, size_t>, std::vector<chalk::DyckPath>>
+      map;
+  for (auto& path : chalk::DyckPath::All(n)) {
+    map[{chalk::Area(path), chalk::Bounce(path)}].emplace_back(path);
+  }
+  return map;
+}
 
+void ShowChain(size_t n, size_t bounce_area_sum) {
+  std::cerr
+      << "\n\n\033[1;31m======================================================="
+         "==="
+         "==================================\nShowing all paths of length "
+      << n << " with bounce and area summing to " << bounce_area_sum
+      << "\n=========================================================="
+         "==================================\033[1;0m\n\n";
+  auto map = Classify(n);
+  for (size_t b = 0; b <= bounce_area_sum; ++b) {
+    size_t a = bounce_area_sum - b;
+    std::cerr << "\033[1;33mPaths with area " << a << " and bounce " << b
+              << ":";
+    auto iter = map.find({a, b});
+    if (iter == map.end()) {
+      std::cerr << " (none)\n\033[0m";
+      continue;
+    }
+    std::cerr << "\033[0m";
+    ::winsize w;
+    ::ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+    size_t number_in_row = std::max(size_t{1}, (w.ws_col / 2) / (n + 2));
+    size_t i             = 0;
+    auto& ps             = iter->second;
+    for (size_t i = 0; i < ps.size(); i += number_in_row) {
+      chalk::Image img(ps[i]);
+      for (size_t j = i + 1; j < std::min(i + number_in_row, ps.size()); ++j) {
+        img = chalk::Image::Horizontally(ps[j], img, 4);
+      }
+      std::cerr << "\n\033[1;37m" << img << "\033[0m\n";
+    }
+  }
+}
+
+void ApplyConjecture(size_t n) {
   auto [mapped, inferred, unclassified, inferred_self_dual, mapped_self_dual] =
       Map(n, Conjecture);
 
@@ -217,10 +263,22 @@ int main(int argc, char const* argv[]) {
     unclassified_count += paths.size();
   }
 
-  std::cerr << "============================================\n\n";
+  std::cerr << "============================================\nMapped:\n\n";
 
+  for (auto const& [p1, p2] : mapped) {
+    std::cerr << chalk::Image::Horizontally(p1, p2, 4) << "\n";
+  }
+
+  std::cerr << "Inferred:\n\n";
   for (auto const& [p1, p2] : inferred) {
     std::cerr << chalk::Image::Horizontally(p1, p2, 4) << "\n";
+  }
+
+  std::cerr << "Unclassified:\n\n";
+  for (auto const& [ab, ps] : unclassified) {
+    auto [a, b] = ab;
+    std::cerr << "  => " << a << ", " << b << "\n";
+    for (auto const& p : ps) { std::cerr << chalk::Image(p) << "\n"; }
   }
 
   absl::Format(&std::cerr, R"(
@@ -230,5 +288,30 @@ int main(int argc, char const* argv[]) {
   )",
                2 * mapped.size() - mapped_self_dual,
                2 * inferred.size() - inferred_self_dual, unclassified_count);
+}
+
+void Dispatch(absl::Span<char const* const> input) {
+  constexpr std::string_view InvalidCommand =
+      "Must start with one of these commands: 'chains', 'conjecture'";
+  if (input.size() < 2) { Abort(InvalidCommand); }
+
+  if (input[1] == std::string_view("chains")) {
+    if (input.size() != 4) {
+      Abort(
+          "'chains' requires two integer arguments representing the length of "
+          "the path, and the sum of bounce and area.");
+    }
+    ShowChain(ValidateInteger(input[2]), ValidateInteger(input[3]));
+
+  } else if (input[1] == std::string_view("conjecture")) {
+    ApplyConjecture(ValidateInteger(input[2]));
+
+  } else {
+    Abort(InvalidCommand);
+  }
+}
+
+int main(int argc, char const* argv[]) {
+  Dispatch(absl::MakeConstSpan(argv, argc));
   return 0;
 }
