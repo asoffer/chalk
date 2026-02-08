@@ -1,0 +1,15 @@
+[package]
+name = "chalk"
+description = "A computational algebra library"
+version = "0.1.1"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+chalk-proc-macro = { version = "0.1.0", path = "../proc_macro" }
+
+[features]
+default = []
+cyclic = []
+polynomial = []
