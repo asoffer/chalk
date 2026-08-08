@@ -256,7 +256,7 @@ fn extract_requirements(
 }
 
 fn split_stream(stream: &TokenStream) -> Vec<TokenStream> {
-  let mut v = vec![TokenStream::new()];
+  let mut v: Vec<Vec<TokenTree>> = vec![Vec::new()];
   let mut marker: Option<TokenTree> = None;
   for token in stream.clone().into_iter() {
     match token {
@@ -271,22 +271,35 @@ fn split_stream(stream: &TokenStream) -> Vec<TokenStream> {
           }
         } else if p.as_char() == '>' && p.spacing() == Spacing::Alone {
           if marker.is_some() {
-            v.push(TokenStream::new());
+            let last = v.last_mut().unwrap();
+            if matches!(last.last(), Some(TokenTree::Punct(p)) if p.as_char() == ',')
+            {
+              last.pop();
+            }
+            v.push(Vec::new());
             marker = None;
           } else {
-            v.last_mut().unwrap().extend([TokenTree::Punct(p)]);
+            v.last_mut().unwrap().push(TokenTree::Punct(p));
           }
         } else {
-          v.last_mut().unwrap().extend([TokenTree::Punct(p)]);
+          v.last_mut().unwrap().push(TokenTree::Punct(p));
         }
       }
-      t => v.last_mut().unwrap().extend([t]),
+      t => v.last_mut().unwrap().push(t),
     }
+  }
+
+  let last = v.last_mut().unwrap();
+  if matches!(last.last(), Some(TokenTree::Punct(p)) if p.as_char() == ',') {
+    last.pop();
   }
 
   if v.first().unwrap().is_empty() {
     let s = v.pop().unwrap();
     v[0] = s;
   }
-  v
+
+  v.into_iter()
+    .map(|trees| trees.into_iter().collect())
+    .collect()
 }

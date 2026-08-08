@@ -68,6 +68,8 @@
 //! markers. It just means that doing so does not allow any language-level
 //! invariants to be broken invisibly.
 
+mod private;
+
 macro_rules! trait_alias_impl {
   ([$($tokens:tt)*] $name:ident<$bound_name:ident: $bounds:tt> = $($defn:tt)+) => {
     $($tokens)* trait $name<$bound_name: $bounds>: $($defn)+ {}
@@ -316,7 +318,7 @@ trait_alias! {
 }
 
 trait_alias! {
-  /// An "alias trait" representing fieds Equivalent to
+  /// An "alias trait" representing fields. Equivalent to
   /// [`CommutativeRing`]` + `[`Div`].
   pub Field = CommutativeRing + Div
 }
@@ -380,3 +382,76 @@ impl AddIdentity for String {
 /// An attribute macro that can be applied to types in order to simplify
 /// implementations of algebraic structures.
 pub use chalk_proc_macro::chalk;
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn primitive_additive_identity() {
+    assert_eq!(<i32 as AddIdentity>::add_id(), 0);
+    assert_eq!(<u8 as AddIdentity>::add_id(), 0);
+    assert_eq!(<i64 as AddIdentity>::add_id(), 0);
+    assert_eq!(<usize as AddIdentity>::add_id(), 0);
+
+    assert!(0i32.is_add_id());
+    assert!(!1i32.is_add_id());
+    assert!(!(-1i32).is_add_id());
+  }
+
+  #[test]
+  fn primitive_multiplicative_identity() {
+    assert_eq!(<i32 as MulIdentity>::mul_id(), 1);
+    assert_eq!(<u8 as MulIdentity>::mul_id(), 1);
+    assert_eq!(<i128 as MulIdentity>::mul_id(), 1);
+
+    assert!(1i32.is_mul_id());
+    assert!(!0i32.is_mul_id());
+    assert!(!2i32.is_mul_id());
+  }
+
+  #[test]
+  fn primitive_into_rhs_is_reflexive() {
+    let x: i32 = 7;
+    assert_eq!(x.into_rhs(), &7);
+  }
+
+  #[test]
+  fn string_additive_identity_is_empty() {
+    assert_eq!(<String as AddIdentity>::add_id(), String::new());
+    assert!(String::new().is_add_id());
+    assert!("".to_string().is_add_id());
+    assert!(!"a".to_string().is_add_id());
+  }
+
+  #[test]
+  fn string_into_rhs_borrows_as_str() {
+    let s = String::from("hello");
+    let r: &str = s.into_rhs();
+    assert_eq!(r, "hello");
+  }
+
+  // Compile-time checks that the blanket "trait alias" implementations are
+  // wired up for the primitive integer types.
+  #[test]
+  fn primitives_satisfy_ring_aliases() {
+    fn assert_commutative_ring<T: CommutativeRing>() {}
+    // The primitive integers are wired up as commutative rings via the blanket
+    // trait-alias implementations. (They are not marked as `Domain`, so
+    // `IntegralDomain` is intentionally not asserted here.)
+    assert_commutative_ring::<i32>();
+    assert_commutative_ring::<i64>();
+    assert_commutative_ring::<isize>();
+  }
+
+  #[test]
+  fn integer_arithmetic_through_operator_traits() {
+    // The primitive `AddAssign`/`MulAssign` with a reference operand (used by
+    // the chalk `Add`/`Mul` aliases) behaves as ordinary integer arithmetic.
+    let mut x = 3i32;
+    x += &4;
+    assert_eq!(x, 7);
+    x *= &2;
+    assert_eq!(x, 14);
+  }
+}
