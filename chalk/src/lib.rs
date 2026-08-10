@@ -231,17 +231,10 @@ trait_alias! {
   pub MulSemigroup = MulAssociative
 }
 
-trait_alias! {
-  /// An "alias trait" representing monoids with the operator `+`. Equivalent to
-  /// [`AddSemigroup`]` + `[`AddIdentity`]
-  pub AddMonoid = AddSemigroup + AddIdentity
-}
-
-trait_alias! {
-  /// An "alias trait" representing monoids with the operator `*`. Equivalent to
-  /// [`MulSemigroup`]` + `[`MulIdentity`]
-  pub MulMonoid = MulSemigroup + MulIdentity
-}
+mod monoid;
+pub use monoid::AddMonoid;
+pub use monoid::FreeMonoid;
+pub use monoid::MulMonoid;
 
 trait_alias! {
   /// An "alias trait" representing groups with the operator `+`. Equivalent to
@@ -323,39 +316,45 @@ trait_alias! {
   pub Field = CommutativeRing + Div
 }
 
+mod basis;
+pub use basis::Basis;
+pub use basis::PartialOrdBasis;
+pub use basis::StandardBasis;
+
 #[cfg(feature = "polynomial")]
 pub mod polynomial;
 
 #[cfg(feature = "cyclic")]
 pub mod cyclic;
 
+#[cfg(feature = "matrix")]
+pub mod matrix;
+
 macro_rules! implement {
   ($t:ty, [$($tr:ty,)*]) => { $(impl $tr for $t {})* };
 }
 
 macro_rules! impl_primitive {
-  ($t:ty) => {
-    impl Binary for $t  {
-      type Rhs = $t ;
-      fn into_rhs(&self) -> &Self::Rhs { self }
-    }
-    impl AddIdentity for $t {
-      fn add_id() -> $t { 0 }
-    }
-    impl MulIdentity for $t {
-      fn mul_id() -> $t { 1 }
-    }
-  };
-  ($t:ty, $($ts:ty),*) => {
-    implement!{$t, [
-      AddAssociative,
-      MulAssociative,
-      AddCommutative,
-      MulCommutative,
-      AddMulDistributive,
-    ]}
-    impl_primitive!{$t}
-    impl_primitive!{$($ts),*}
+  ($($t:ty),* $(,)?) => {
+    $(
+      implement!{$t, [
+        AddAssociative,
+        MulAssociative,
+        AddCommutative,
+        MulCommutative,
+        AddMulDistributive,
+      ]}
+      impl Binary for $t  {
+        type Rhs = $t ;
+        fn into_rhs(&self) -> &Self::Rhs { self }
+      }
+      impl AddIdentity for $t {
+        fn add_id() -> $t { 0 }
+      }
+      impl MulIdentity for $t {
+        fn mul_id() -> $t { 1 }
+      }
+    )*
   };
 }
 impl_primitive! {
@@ -439,9 +438,43 @@ mod tests {
     // The primitive integers are wired up as commutative rings via the blanket
     // trait-alias implementations. (They are not marked as `Domain`, so
     // `IntegralDomain` is intentionally not asserted here.)
+    assert_commutative_ring::<i8>();
+    assert_commutative_ring::<i16>();
     assert_commutative_ring::<i32>();
     assert_commutative_ring::<i64>();
+    assert_commutative_ring::<i128>();
     assert_commutative_ring::<isize>();
+  }
+
+  // The unsigned primitives are not `AddGroup`s (they have no `Neg`), but
+  // `impl_primitive!` must still give every listed type the marker traits and
+  // both identities. `usize` is last in that list, where an earlier recursive
+  // formulation of the macro dropped the markers.
+  #[test]
+  fn every_primitive_gets_the_marker_traits() {
+    fn assert_markers<T>()
+    where
+      T: AddAssociative
+        + MulAssociative
+        + AddCommutative
+        + MulCommutative
+        + AddMulDistributive
+        + AddIdentity
+        + MulIdentity,
+    {
+    }
+    assert_markers::<i8>();
+    assert_markers::<i16>();
+    assert_markers::<i32>();
+    assert_markers::<i64>();
+    assert_markers::<i128>();
+    assert_markers::<isize>();
+    assert_markers::<u8>();
+    assert_markers::<u16>();
+    assert_markers::<u32>();
+    assert_markers::<u64>();
+    assert_markers::<u128>();
+    assert_markers::<usize>();
   }
 
   #[test]
