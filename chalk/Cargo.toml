@@ -12,4 +12,5 @@ chalk-proc-macro = { version = "0.1.0", path = "../proc_macro" }
 [features]
 default = []
 cyclic = []
+matrix = []
 polynomial = []

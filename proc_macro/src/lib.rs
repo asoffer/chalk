@@ -109,15 +109,26 @@ fn marker_traits(name: &str) -> Vec<Path> {
     vec![
       parse_quote!(chalk::AddAssociative),
       parse_quote!(chalk::MulAssociative),
+      parse_quote!(chalk::AddCommutative),
       parse_quote!(chalk::AddMulDistributive),
     ]
   } else if name == "CommutativeRing" {
     vec![
       parse_quote!(chalk::AddAssociative),
       parse_quote!(chalk::MulAssociative),
+      parse_quote!(chalk::AddCommutative),
       parse_quote!(chalk::MulCommutative),
       parse_quote!(chalk::AddMulDistributive),
     ]
+  } else if name == "RingWithoutIdentity" {
+    vec![
+      parse_quote!(chalk::AddAssociative),
+      parse_quote!(chalk::MulAssociative),
+      parse_quote!(chalk::AddCommutative),
+      parse_quote!(chalk::AddMulDistributive),
+    ]
+  } else if name == "MulGroup" {
+    vec![parse_quote!(chalk::MulAssociative)]
   } else {
     vec![]
   }
@@ -216,8 +227,10 @@ impl ItemImpl {
 }
 
 fn item_impls(name: &str) -> Vec<ItemImpl> {
-  if name == "Ring" {
+  if name == "Ring" || name == "RingWithoutIdentity" {
     vec![ItemImpl::Add, ItemImpl::Sub, ItemImpl::Mul]
+  } else if name == "MulGroup" {
+    vec![ItemImpl::Mul]
   } else {
     vec![]
   }
